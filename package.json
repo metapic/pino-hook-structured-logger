@@ -37,6 +37,9 @@
     "pino",
     "structured-logging"
   ],
+  "dependencies": {
+    "pino": "^9.7.0"
+  },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
     "@types/node": "^24.0.13",
