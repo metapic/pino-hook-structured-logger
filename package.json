@@ -1,11 +1,19 @@
 {
   "name": "@metapic/pino-hook-structured-logger",
   "version": "0.0.0-development",
-  "description": "A template for creating npm packages using TypeScript and VSCode",
+  "description": "Adds support for structured logs to pino via a logMethod hook.",
   "main": "./dist/index.js",
   "files": [
-    "lib/**/*"
+    "dist/**/*"
   ],
+  "homepage": "https://github.com/metapic/pino-hook-structured-logger",
+  "bugs": {
+    "url": "https://github.com/metapic/pino-hook-structured-logger/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/metapic/pino-hook-structured-logger.git"
+  },
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "clean": "rm -rf ./dist",
@@ -14,27 +22,21 @@
     "test:watch": "vitest --watch",
     "test": "vitest --coverage"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/metapic/pino-hook-structured-logger.git"
-  },
   "license": "MIT",
   "author": {
     "name": "Daniel Stockhammer",
-    "email": "dstockhammer@users.noreply.github.com",
     "url": "https://github.com/dstockhammer"
   },
   "engines": {
-    "node": ">=16.0"
+    "node": ">= 20"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "keywords": [
     "pino",
     "structured-logging"
   ],
-  "bugs": {
-    "url": "https://github.com/metapic/pino-hook-structured-logger/issues"
-  },
-  "homepage": "https://github.com/metapic/pino-hook-structured-logger",
   "devDependencies": {
     "@eslint/js": "^9.31.0",
     "@types/node": "^24.0.13",
