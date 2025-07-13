@@ -21,7 +21,7 @@ const structuredPino = pino(
 
 describe('info with params', () => {
   bench(
-    'standard pino',
+    'standard logger',
     () =>
       standardPino.info(
         {
@@ -36,7 +36,7 @@ describe('info with params', () => {
   )
 
   bench(
-    'structuredPino logger',
+    'structured logger ',
     () =>
       structuredPino.info(
         {
@@ -50,8 +50,10 @@ describe('info with params', () => {
 })
 
 describe('info with message only', () => {
-  bench('standard pino', () => standardPino.info('hello world'), { time: 1000 })
-  bench('structuredPino logger', () => structuredPino.info('hello world'), {
+  bench('standard logger', () => standardPino.info('hello world'), {
+    time: 1000,
+  })
+  bench('structured logger', () => structuredPino.info('hello world'), {
     time: 1000,
   })
 })

@@ -95,7 +95,7 @@ describe('structured logger', () => {
     })
   })
 
-  describe('supports log format', () => {
+  describe('log formats', () => {
     it.each([
       () =>
         logger.info(
@@ -122,6 +122,30 @@ describe('structured logger', () => {
           { user_id: 12345 },
           'User {user_id} logged in from {location}',
           { location: 'Salzburg' },
+          'arg1',
+          { arg_num: 2 },
+        ),
+      () =>
+        logger.info(
+          'User {user_id} logged in from {location}',
+          12345,
+          'Salzburg',
+          'arg1',
+          { arg_num: 2 },
+        ),
+      () =>
+        logger.info(
+          { user_id: 12345 },
+          'User {user_id} logged in from {location}',
+          'Salzburg',
+          'arg1',
+          { arg_num: 2 },
+        ),
+      () =>
+        logger.info(
+          'User {user_id} logged in from {location}',
+          { location: 'Salzburg' },
+          12345,
           'arg1',
           { arg_num: 2 },
         ),
@@ -224,16 +248,50 @@ describe('structured logger', () => {
     })
   })
 
-  it('maintains pino log levels', () => {
-    logger.debug('Debug {message}', { message: 'test' })
-    logger.info('Info {message}', { message: 'test' })
-    logger.warn('Warning {code}', { code: '404' })
-    logger.error('Error {type}', { type: 'validation' })
+  describe('pino default behaviour', () => {
+    it('maintains pino log levels', () => {
+      logger.debug('Debug {message}', { message: 'test' })
+      logger.info('Info {message}', { message: 'test' })
+      logger.warn('Warning {code}', { code: '404' })
+      logger.error('Error {type}', { type: 'validation' })
 
-    expect(capturedLogs).toHaveLength(4)
-    expect(capturedLogs[0].level).toBe(20)
-    expect(capturedLogs[1].level).toBe(30)
-    expect(capturedLogs[2].level).toBe(40)
-    expect(capturedLogs[3].level).toBe(50)
+      expect(capturedLogs).toHaveLength(4)
+      expect(capturedLogs[0].level).toBe(20)
+      expect(capturedLogs[1].level).toBe(30)
+      expect(capturedLogs[2].level).toBe(40)
+      expect(capturedLogs[3].level).toBe(50)
+    })
+
+    it('maintains standard message with no args', () => {
+      logger.info('This is a simple message')
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('This is a simple message')
+      expect(capturedLogs[0].msg_tpl).toBe('This is a simple message')
+      expect(capturedLogs[0].data).toBeUndefined()
+      expect(capturedLogs[0].args).toBeUndefined()
+    })
+
+    it('maintains standard string formatting', () => {
+      logger.info('User %d logged in from %s', 12345, 'Salzburg')
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('User 12345 logged in from Salzburg')
+      expect(capturedLogs[0].msg_tpl).toBe('User %d logged in from %s')
+      expect(capturedLogs[0].data).toBeUndefined()
+      expect(capturedLogs[0].args).toEqual([12345, 'Salzburg'])
+    })
+
+    it('maintains standard behaviour with string interpolation', () => {
+      const userId = 12345
+      const location = 'Salzburg'
+      logger.info(`User ${userId} logged in from ${location}`)
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('User 12345 logged in from Salzburg')
+      expect(capturedLogs[0].msg_tpl).toBe('User 12345 logged in from Salzburg')
+      expect(capturedLogs[0].data).toBeUndefined()
+      expect(capturedLogs[0].args).toBeUndefined()
+    })
   })
 })
