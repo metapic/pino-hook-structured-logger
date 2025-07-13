@@ -42,7 +42,7 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
   logMethod(this: Logger, args: Parameters<LogFn>, method: LogFn) {
     const {
       messageTemplateKey = 'msg_tpl',
-      dataKey: structuredDataKey = 'data',
+      dataKey = 'data',
       argsKey = 'args',
       errorKey = 'err', // todo: find a way to get the error key from pino. this[Symbol.for('pino.errorKey')]
       unwrapErrors = true,
@@ -67,7 +67,7 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
       [messageTemplateKey]: messageTemplate,
       ...wrapError(structured, error, { errorKey, unwrapErrors }),
       ...wrapStructuredData(structured, {
-        dataKey: structuredDataKey,
+        dataKey,
         unwrapKeys,
       }),
       ...(args.length > 0 ? { [argsKey]: args } : {}),
