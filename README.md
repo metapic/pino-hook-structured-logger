@@ -11,27 +11,30 @@ Captures _structured data_ and adds it to the JSON payload. The _unformatted mes
 See all supported log formats in [the spec](./test/index.spec.ts).
 
 ```js
-// arguments after the message are captured as structured data in
-// order of occurrence in the message template
+// arguments after the message are captured as structured data
+// in order of occurrence in the message template:
 logger.info('User {user_id} logged in from {location}', 12345, 'Salzburg')
 
-// structured data as argument after the message
+// alternatively, a dedicated object as first argument after the message can
+// be used for structured data. this is more verbose, but *may* be more readable.
 logger.info('User {user_id} logged in from {location}', {
   user_id: 12345,
   location: 'Salzburg',
 })
 
-// pino's mergingObject
+// pino's mergingObject is a valid source of structured data too:
 logger.info(
   { user_id: 12345, location: 'Salzburg' },
   'User {user_id} logged in from {location}',
 )
 
 // any combination of the above is supported too.
-// (though you should *probably* not do this.)
+// though you should *probably* not do this...
+
 logger.info({ user_id: 12345 }, 'User {user_id} logged in from {location}', {
   location: 'Salzburg',
 })
+
 logger.info(
   'User {user_id} logged in from {location}',
   { location: 'Salzburg' },
@@ -90,20 +93,18 @@ logger.info(
 
 ## Usage
 
-Simply configure your pino instance to use `structuredLogger()` as hooks. You can _optionally_ customize the behaviour of the structured logger.
+Simply configure your pino instance to use `structuredLogger()` as hooks. You can _optionally_ customize the behaviour of the structured logger by passing a [configuration object](./src/index.ts).
 
 ```ts
 import pino from 'pino'
 import { structuredLogger } from '@metapic/pino-hook-structured-logger'
 
-const logger = pino(
-  {
-    level: 'debug',
-    hooks: structuredLogger({
-      messageTemplateKey: 'msg_tpl',
-      structuredDataKey: 'data',
-    }),
-  },
-  mockStream,
-)
+const logger = pino({
+  level: 'debug',
+  hooks: structuredLogger({
+    messageTemplateKey: 'msg_tpl',
+    structuredDataKey: 'data',
+    argsKey: 'args',
+  }),
+})
 ```
