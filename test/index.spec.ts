@@ -266,6 +266,35 @@ describe('structured logger', () => {
     })
   })
 
+  it('unwraps configured keys', () => {
+    const customLogger = pino(
+      {
+        hooks: structuredLogger({ unwrapKeys: ['ctx', 'bar'] }),
+      },
+      mockStream,
+    )
+
+    customLogger.info(
+      {
+        user_id: 12345,
+        ctx: 'test1',
+        foo: 'bar',
+        bar: { hello: 'world' },
+      },
+      'User {user_id} logged in',
+    )
+
+    expect(capturedLogs).toHaveLength(1)
+    expect(capturedLogs[0].msg).toBe('User 12345 logged in')
+    expect(capturedLogs[0].msg_tpl).toBe('User {user_id} logged in')
+    expect(capturedLogs[0].data).toEqual({
+      user_id: 12345,
+      foo: 'bar',
+    })
+    expect(capturedLogs[0].ctx).toBe('test1')
+    expect(capturedLogs[0].bar).toEqual({ hello: 'world' })
+  })
+
   it('merges the pino "nested object" into the structured data', () => {
     const obj = { foo: 'bar', bar: { hello: 'world' } }
     logger.info(obj, 'User {user_id} logged in', {

@@ -57,35 +57,24 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
     const { messageTemplate, structured, error } =
       tryExtractObjectAndMessageTemplate(args)
 
-    let formattedMessage = formatMessageTemplate(messageTemplate, structured)
-    if (args.length > 0) {
-      tryConvertRemainingArgumentsToStructuredData(
-        formattedMessage,
-        structured,
-        args,
-      )
-      formattedMessage = formatMessageTemplate(formattedMessage, structured)
-    }
-
-    const unwrappedError = tryUnwrapError(structured, error, {
-      errorKey,
-      unwrapErrors,
-    })
+    const formattedMessage = reformatMessageWithRemainingArgs(
+      formatMessage(messageTemplate, structured),
+      structured,
+      args,
+    )
 
     const obj: Record<string, unknown> = {
       [messageTemplateKey]: messageTemplate,
-      ...(unwrappedError ? { [errorKey]: unwrappedError } : {}),
+      ...wrapError(structured, error, { errorKey, unwrapErrors }),
+      ...wrapStructuredData(structured, { structuredDataKey, unwrapKeys }),
       ...(args.length > 0 ? { [argsKey]: args } : {}),
-      ...(structured && Object.keys(structured).length > 0
-        ? { [structuredDataKey]: structured }
-        : {}),
     }
 
     method.apply(this, [obj, formattedMessage, ...args])
   },
 })
 
-const formatMessageTemplate = (
+const formatMessage = (
   message: string,
   structured: Record<string, unknown>,
 ): string => {
@@ -149,11 +138,15 @@ const tryParseNextArgAsObject = (
   }
 }
 
-const tryConvertRemainingArgumentsToStructuredData = (
+const reformatMessageWithRemainingArgs = (
   formattedMessage: string,
   structured: Record<string, unknown>,
   args: Parameters<LogFn>,
 ) => {
+  if (args.length === 0) {
+    return formattedMessage
+  }
+
   const remainingPlaceholders =
     tryExtractRemainingPlaceholders(formattedMessage)
 
@@ -165,6 +158,8 @@ const tryConvertRemainingArgumentsToStructuredData = (
     const placeholder = remainingPlaceholders[i]
     structured[placeholder] = args.shift()
   }
+
+  return formatMessage(formattedMessage, structured)
 }
 
 const tryExtractRemainingPlaceholders = (messageTemplate: string): string[] => {
@@ -172,20 +167,46 @@ const tryExtractRemainingPlaceholders = (messageTemplate: string): string[] => {
   return matches ? matches.map((m) => m.slice(1, -1)) : []
 }
 
-const tryUnwrapError = (
+const wrapError = (
   structured: Record<string, unknown>,
   currentError: Error | undefined,
   opts: Required<Pick<StructuredLoggerOptions, 'errorKey' | 'unwrapErrors'>>,
 ) => {
   if (currentError) {
-    return currentError
+    return { [opts.errorKey]: currentError }
   }
 
-  if (Object.prototype.hasOwnProperty.call(structured, opts.errorKey)) {
-    const error = structured[opts.errorKey] as Error
+  const error = structured[opts.errorKey]
+  if (error && error instanceof Error) {
     delete structured[opts.errorKey]
-    return error
+    return { [opts.errorKey]: error }
   }
 
-  return currentError
+  return {}
+}
+
+const wrapStructuredData = (
+  structured: Record<string, unknown>,
+  opts: Required<
+    Pick<StructuredLoggerOptions, 'structuredDataKey' | 'unwrapKeys'>
+  >,
+) => {
+  if (Object.keys(structured).length === 0) {
+    return {}
+  }
+
+  const unwrapped: Record<string, unknown> = {}
+
+  for (const key of opts.unwrapKeys) {
+    const value = structured[key]
+    if (value !== undefined) {
+      unwrapped[key] = value
+      delete structured[key]
+    }
+  }
+
+  return {
+    ...unwrapped,
+    [opts.structuredDataKey]: structured,
+  }
 }
