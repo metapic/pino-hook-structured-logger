@@ -103,8 +103,9 @@ const logger = pino({
   level: 'debug',
   hooks: structuredLogger({
     messageTemplateKey: 'msg_tpl',
-    structuredDataKey: 'data',
+    dataKey: 'data',
     argsKey: 'args',
+    unwrapErrors: true,
   }),
 })
 ```

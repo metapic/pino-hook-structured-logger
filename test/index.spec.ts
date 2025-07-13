@@ -48,7 +48,7 @@ describe('structured logger', () => {
       const customLogger = pino(
         {
           level: 'debug',
-          hooks: structuredLogger({ structuredDataKey: 'extra' }),
+          hooks: structuredLogger({ dataKey: 'extra' }),
         },
         mockStream,
       )

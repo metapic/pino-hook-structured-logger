@@ -2,7 +2,7 @@ import { LogFn, Logger } from 'pino'
 
 export type StructuredLoggerOptions = {
   messageTemplateKey?: string
-  structuredDataKey?: string
+  dataKey?: string
   argsKey?: string
   errorKey?: string
   unwrapErrors?: boolean
@@ -42,7 +42,7 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
   logMethod(this: Logger, args: Parameters<LogFn>, method: LogFn) {
     const {
       messageTemplateKey = 'msg_tpl',
-      structuredDataKey = 'data',
+      dataKey: structuredDataKey = 'data',
       argsKey = 'args',
       errorKey = 'err', // todo: find a way to get the error key from pino. this[Symbol.for('pino.errorKey')]
       unwrapErrors = true,
@@ -66,7 +66,10 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
     const obj: Record<string, unknown> = {
       [messageTemplateKey]: messageTemplate,
       ...wrapError(structured, error, { errorKey, unwrapErrors }),
-      ...wrapStructuredData(structured, { structuredDataKey, unwrapKeys }),
+      ...wrapStructuredData(structured, {
+        dataKey: structuredDataKey,
+        unwrapKeys,
+      }),
       ...(args.length > 0 ? { [argsKey]: args } : {}),
     }
 
@@ -187,9 +190,7 @@ const wrapError = (
 
 const wrapStructuredData = (
   structured: Record<string, unknown>,
-  opts: Required<
-    Pick<StructuredLoggerOptions, 'structuredDataKey' | 'unwrapKeys'>
-  >,
+  opts: Required<Pick<StructuredLoggerOptions, 'dataKey' | 'unwrapKeys'>>,
 ) => {
   if (Object.keys(structured).length === 0) {
     return {}
@@ -207,6 +208,6 @@ const wrapStructuredData = (
 
   return {
     ...unwrapped,
-    [opts.structuredDataKey]: structured,
+    [opts.dataKey]: structured,
   }
 }
