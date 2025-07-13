@@ -35,47 +35,56 @@ describe('structured logger', () => {
         mockStream,
       )
 
-      customLogger.info('Hello {name}', { name: 'World' })
+      customLogger.info('Hello {name}', { name: 'World' }, 'arg1')
 
       expect(capturedLogs).toHaveLength(1)
       expect(capturedLogs[0].msg).toBe('Hello World')
       expect(capturedLogs[0].template).toBe('Hello {name}')
-      expect(capturedLogs[0].extra).toEqual({ name: 'World' })
+      expect(capturedLogs[0].data).toEqual({ name: 'World' })
+      expect(capturedLogs[0].args).toEqual(['arg1'])
     })
 
     it('uses custom structured data key', () => {
       const customLogger = pino(
         {
           level: 'debug',
-          hooks: structuredLogger({ structuredDataKey: 'data' }),
+          hooks: structuredLogger({ structuredDataKey: 'extra' }),
         },
         mockStream,
       )
 
-      customLogger.info('Hello {name}', { name: 'World' })
+      customLogger.info('Hello {name}', { name: 'World' }, 'arg1')
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('Hello World')
+      expect(capturedLogs[0].msg_tpl).toBe('Hello {name}')
+      expect(capturedLogs[0].extra).toEqual({ name: 'World' })
+      expect(capturedLogs[0].args).toEqual(['arg1'])
+    })
+
+    it('uses custom args data key', () => {
+      const customLogger = pino(
+        {
+          level: 'debug',
+          hooks: structuredLogger({ argsKey: 'params' }),
+        },
+        mockStream,
+      )
+
+      customLogger.info('Hello {name}', { name: 'World' }, 'arg1')
 
       expect(capturedLogs).toHaveLength(1)
       expect(capturedLogs[0].msg).toBe('Hello World')
       expect(capturedLogs[0].msg_tpl).toBe('Hello {name}')
       expect(capturedLogs[0].data).toEqual({ name: 'World' })
-    })
-
-    it('handles different log levels', () => {
-      logger.debug('Debug {message}', { message: 'test' })
-      logger.warn('Warning {code}', { code: '404' })
-      logger.error('Error {type}', { type: 'validation' })
-
-      expect(capturedLogs).toHaveLength(3)
-      expect(capturedLogs[0].level).toBe(20)
-      expect(capturedLogs[1].level).toBe(40)
-      expect(capturedLogs[2].level).toBe(50)
+      expect(capturedLogs[0].params).toEqual(['arg1'])
     })
 
     it('does not log when level is below configured threshold', () => {
       const customLogger = pino(
         {
           level: 'warn',
-          hooks: structuredLogger({ messageTemplateKey: 'template' }),
+          hooks: structuredLogger(),
         },
         mockStream,
       )
@@ -95,17 +104,26 @@ describe('structured logger', () => {
             location: 'Salzburg',
           },
           'User {user_id} logged in from {location}',
+          'arg1',
+          { arg_num: 2 },
         ),
       () =>
-        logger.info('User {user_id} logged in from {location}', {
-          user_id: 12345,
-          location: 'Salzburg',
-        }),
+        logger.info(
+          'User {user_id} logged in from {location}',
+          {
+            user_id: 12345,
+            location: 'Salzburg',
+          },
+          'arg1',
+          { arg_num: 2 },
+        ),
       () =>
         logger.info(
           { user_id: 12345 },
           'User {user_id} logged in from {location}',
           { location: 'Salzburg' },
+          'arg1',
+          { arg_num: 2 },
         ),
     ])('%s', (log) => {
       log()
@@ -115,10 +133,11 @@ describe('structured logger', () => {
       expect(capturedLogs[0].msg_tpl).toBe(
         'User {user_id} logged in from {location}',
       )
-      expect(capturedLogs[0].extra).toEqual({
+      expect(capturedLogs[0].data).toEqual({
         user_id: 12345,
         location: 'Salzburg',
       })
+      expect(capturedLogs[0].args).toEqual(['arg1', { arg_num: 2 }])
     })
   })
 
@@ -133,7 +152,7 @@ describe('structured logger', () => {
     expect(capturedLogs[0].msg_tpl).toBe(
       'User {user_id} logged in from {location}',
     )
-    expect(capturedLogs[0].extra).toEqual({
+    expect(capturedLogs[0].data).toEqual({
       user_id: 12345,
     })
   })
@@ -165,7 +184,7 @@ describe('structured logger', () => {
     expect(capturedLogs).toHaveLength(1)
     expect(capturedLogs[0].msg).toBe('An error occurred for user 12345')
     expect(capturedLogs[0].msg_tpl).toBe('An error occurred for user {user_id}')
-    expect(capturedLogs[0].extra).toEqual({
+    expect(capturedLogs[0].data).toEqual({
       user_id: 12345,
     })
     expect(capturedLogs[0].err).toEqual({
@@ -184,7 +203,7 @@ describe('structured logger', () => {
     expect(capturedLogs).toHaveLength(1)
     expect(capturedLogs[0].msg).toBe('User 12345 logged in')
     expect(capturedLogs[0].msg_tpl).toBe('User {user_id} logged in')
-    expect(capturedLogs[0].extra).toEqual({
+    expect(capturedLogs[0].data).toEqual({
       user_id: 12345,
       ...obj,
     })
@@ -199,9 +218,22 @@ describe('structured logger', () => {
     expect(capturedLogs).toHaveLength(1)
     expect(capturedLogs[0].msg).toBe('User 12345 logged in')
     expect(capturedLogs[0].msg_tpl).toBe('User {user_id} logged in')
-    expect(capturedLogs[0].extra).toEqual({
+    expect(capturedLogs[0].data).toEqual({
       user_id: 12345,
       foo: 'bar',
     })
+  })
+
+  it('maintains pino log levels', () => {
+    logger.debug('Debug {message}', { message: 'test' })
+    logger.info('Info {message}', { message: 'test' })
+    logger.warn('Warning {code}', { code: '404' })
+    logger.error('Error {type}', { type: 'validation' })
+
+    expect(capturedLogs).toHaveLength(4)
+    expect(capturedLogs[0].level).toBe(20)
+    expect(capturedLogs[1].level).toBe(30)
+    expect(capturedLogs[2].level).toBe(40)
+    expect(capturedLogs[3].level).toBe(50)
   })
 })
