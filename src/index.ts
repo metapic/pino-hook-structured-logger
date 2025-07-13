@@ -5,6 +5,8 @@ export type StructuredLoggerOptions = {
   structuredDataKey?: string
   argsKey?: string
   errorKey?: string
+  unwrapErrors?: boolean
+  unwrapKeys?: string[]
 }
 
 /**
@@ -43,6 +45,8 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
       structuredDataKey = 'data',
       argsKey = 'args',
       errorKey = 'err', // todo: find a way to get the error key from pino. this[Symbol.for('pino.errorKey')]
+      unwrapErrors = true,
+      unwrapKeys = [],
     } = opts
 
     if (!args || args.length < 1) {
@@ -63,9 +67,14 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
       formattedMessage = formatMessageTemplate(formattedMessage, structured)
     }
 
+    const unwrappedError = tryUnwrapError(structured, error, {
+      errorKey,
+      unwrapErrors,
+    })
+
     const obj: Record<string, unknown> = {
       [messageTemplateKey]: messageTemplate,
-      ...(error ? { [errorKey]: error } : {}),
+      ...(unwrappedError ? { [errorKey]: unwrappedError } : {}),
       ...(args.length > 0 ? { [argsKey]: args } : {}),
       ...(structured && Object.keys(structured).length > 0
         ? { [structuredDataKey]: structured }
@@ -161,4 +170,22 @@ const tryConvertRemainingArgumentsToStructuredData = (
 const tryExtractRemainingPlaceholders = (messageTemplate: string): string[] => {
   const matches = messageTemplate.match(/{(\w+)}/g)
   return matches ? matches.map((m) => m.slice(1, -1)) : []
+}
+
+const tryUnwrapError = (
+  structured: Record<string, unknown>,
+  currentError: Error | undefined,
+  opts: Required<Pick<StructuredLoggerOptions, 'errorKey' | 'unwrapErrors'>>,
+) => {
+  if (currentError) {
+    return currentError
+  }
+
+  if (Object.prototype.hasOwnProperty.call(structured, opts.errorKey)) {
+    const error = structured[opts.errorKey] as Error
+    delete structured[opts.errorKey]
+    return error
+  }
+
+  return currentError
 }

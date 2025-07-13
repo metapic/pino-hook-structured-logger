@@ -199,22 +199,70 @@ describe('structured logger', () => {
     expect(capturedLogs[0].msg).toBe('Count: 42, Price: 19.99')
   })
 
-  it('includes the error object using the configured pino error key', () => {
-    const error = new Error('This is an error')
-    logger.error(error, 'An error occurred for user {user_id}', {
-      user_id: 12345,
+  describe('error handling', () => {
+    it('includes the error object using the configured pino error key', () => {
+      const error = new Error('This is an error')
+      logger.error(error, 'An error occurred for user {user_id}', {
+        user_id: 12345,
+      })
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('An error occurred for user 12345')
+      expect(capturedLogs[0].msg_tpl).toBe(
+        'An error occurred for user {user_id}',
+      )
+      expect(capturedLogs[0].data).toEqual({
+        user_id: 12345,
+      })
+      expect(capturedLogs[0].err).toEqual({
+        message: 'This is an error',
+        type: 'Error',
+        stack: expect.any(String) as unknown,
+      })
     })
 
-    expect(capturedLogs).toHaveLength(1)
-    expect(capturedLogs[0].msg).toBe('An error occurred for user 12345')
-    expect(capturedLogs[0].msg_tpl).toBe('An error occurred for user {user_id}')
-    expect(capturedLogs[0].data).toEqual({
-      user_id: 12345,
+    it('unwraps the error object when passed as mergingObject', () => {
+      const error = new Error('This is an error')
+      logger.error({ err: error }, 'An error occurred for user {user_id}', {
+        user_id: 12345,
+      })
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('An error occurred for user 12345')
+      expect(capturedLogs[0].msg_tpl).toBe(
+        'An error occurred for user {user_id}',
+      )
+      expect(capturedLogs[0].data).toEqual({
+        user_id: 12345,
+      })
+      expect(capturedLogs[0].err).toEqual({
+        message: 'This is an error',
+        type: 'Error',
+        stack: expect.any(String) as unknown,
+      })
     })
-    expect(capturedLogs[0].err).toEqual({
-      message: 'This is an error',
-      type: 'Error',
-      stack: expect.any(String) as unknown,
+
+    it('does not unwrap the error object when there is already an error', () => {
+      const error = new Error('This is an error')
+      logger.error(error, 'An error occurred for user {user_id}', {
+        user_id: 12345,
+        err: { message: 'Another error' },
+      })
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('An error occurred for user 12345')
+      expect(capturedLogs[0].msg_tpl).toBe(
+        'An error occurred for user {user_id}',
+      )
+      expect(capturedLogs[0].data).toEqual({
+        user_id: 12345,
+        err: { message: 'Another error' },
+      })
+      expect(capturedLogs[0].err).toEqual({
+        message: 'This is an error',
+        type: 'Error',
+        stack: expect.any(String) as unknown,
+      })
     })
   })
 
