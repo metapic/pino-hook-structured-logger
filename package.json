@@ -20,7 +20,8 @@
     "lint": "tsc --noEmit && eslint \"{src,apps,libs,test}/**/*.ts\"",
     "semantic-release": "semantic-release",
     "test:watch": "vitest --watch",
-    "test": "vitest --coverage"
+    "test": "vitest --coverage",
+    "bench": "vitest bench"
   },
   "license": "MIT",
   "author": {

@@ -26,7 +26,7 @@ describe('structured logger', () => {
   })
 
   describe('configuration', () => {
-    it('should use custom message template key', () => {
+    it('uses custom message template key', () => {
       const customLogger = pino(
         {
           level: 'debug',
@@ -43,7 +43,7 @@ describe('structured logger', () => {
       expect(capturedLogs[0].extra).toEqual({ name: 'World' })
     })
 
-    it('should use custom structured data key', () => {
+    it('uses custom structured data key', () => {
       const customLogger = pino(
         {
           level: 'debug',
@@ -60,7 +60,7 @@ describe('structured logger', () => {
       expect(capturedLogs[0].data).toEqual({ name: 'World' })
     })
 
-    it('should handle different log levels', () => {
+    it('handles different log levels', () => {
       logger.debug('Debug {message}', { message: 'test' })
       logger.warn('Warning {code}', { code: '404' })
       logger.error('Error {type}', { type: 'validation' })
@@ -71,7 +71,7 @@ describe('structured logger', () => {
       expect(capturedLogs[2].level).toBe(50)
     })
 
-    it('should noop when level is below configured threshold', () => {
+    it('does not log when level is below configured threshold', () => {
       const customLogger = pino(
         {
           level: 'warn',
@@ -86,15 +86,29 @@ describe('structured logger', () => {
     })
   })
 
-  describe('logging with Laravel format', () => {
-    it('should format message templates with parameters from pino "nested object"', () => {
-      logger.info(
-        {
+  describe('supports log format', () => {
+    it.each([
+      () =>
+        logger.info(
+          {
+            user_id: 12345,
+            location: 'Salzburg',
+          },
+          'User {user_id} logged in from {location}',
+        ),
+      () =>
+        logger.info('User {user_id} logged in from {location}', {
           user_id: 12345,
           location: 'Salzburg',
-        },
-        'User {user_id} logged in from {location}',
-      )
+        }),
+      () =>
+        logger.info(
+          { user_id: 12345 },
+          'User {user_id} logged in from {location}',
+          { location: 'Salzburg' },
+        ),
+    ])('%s', (log) => {
+      log()
 
       expect(capturedLogs).toHaveLength(1)
       expect(capturedLogs[0].msg).toBe('User 12345 logged in from Salzburg')
@@ -106,122 +120,88 @@ describe('structured logger', () => {
         location: 'Salzburg',
       })
     })
+  })
 
-    it('should format message templates with parameters from structured data object', () => {
-      logger.info('User {user_id} logged in from {location}', {
-        user_id: 12345,
-        location: 'Salzburg',
-      })
-
-      expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('User 12345 logged in from Salzburg')
-      expect(capturedLogs[0].msg_tpl).toBe(
-        'User {user_id} logged in from {location}',
-      )
-      expect(capturedLogs[0].extra).toEqual({
-        user_id: 12345,
-        location: 'Salzburg',
-      })
+  it('handles missing template parameters', () => {
+    logger.info('User {user_id} logged in from {location}', {
+      user_id: 12345,
+      // location is missing
     })
 
-    // todo
-    // it('should format message templates with parameters from arguments', () => {
-    //   logger.info('User {user_id} logged in from {location}', 12345, 'Salzburg')
+    expect(capturedLogs).toHaveLength(1)
+    expect(capturedLogs[0].msg).toBe('User 12345 logged in from {location}')
+    expect(capturedLogs[0].msg_tpl).toBe(
+      'User {user_id} logged in from {location}',
+    )
+    expect(capturedLogs[0].extra).toEqual({
+      user_id: 12345,
+    })
+  })
 
-    //   expect(capturedLogs).toHaveLength(1)
-    //   expect(capturedLogs[0].msg).toBe('User 12345 logged in from Salzburg')
-    //   expect(capturedLogs[0].msg_tpl).toBe(
-    //     'User {user_id} logged in from {location}',
-    //   )
-    //   expect(capturedLogs[0].extra).toEqual({
-    //     user_id: 12345,
-    //     location: 'Salzburg',
-    //   })
-    // })
+  it('handles empty template parameters', () => {
+    logger.info('Message with {empty}', { empty: '' })
 
-    it('should handle missing template parameters', () => {
-      logger.info('User {user_id} logged in from {location}', {
-        user_id: 12345,
-        // location is missing
-      })
+    expect(capturedLogs).toHaveLength(1)
+    expect(capturedLogs[0].msg).toBe('Message with ')
+    expect(capturedLogs[0].msg_tpl).toBe('Message with {empty}')
+  })
 
-      expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('User 12345 logged in from {location}')
-      expect(capturedLogs[0].msg_tpl).toBe(
-        'User {user_id} logged in from {location}',
-      )
-      expect(capturedLogs[0].extra).toEqual({
-        user_id: 12345,
-      })
+  it('handles numeric template parameters', () => {
+    logger.info('Count: {count}, Price: {price}', {
+      count: 42,
+      price: 19.99,
     })
 
-    it('should handle empty template parameters', () => {
-      logger.info('Message with {empty}', { empty: '' })
+    expect(capturedLogs).toHaveLength(1)
+    expect(capturedLogs[0].msg).toBe('Count: 42, Price: 19.99')
+  })
 
-      expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('Message with ')
-      expect(capturedLogs[0].msg_tpl).toBe('Message with {empty}')
+  it('includes the error object using the configured pino error key', () => {
+    const error = new Error('This is an error')
+    logger.error(error, 'An error occurred for user {user_id}', {
+      user_id: 12345,
     })
 
-    it('should handle numeric template parameters', () => {
-      logger.info('Count: {count}, Price: {price}', {
-        count: 42,
-        price: 19.99,
-      })
+    expect(capturedLogs).toHaveLength(1)
+    expect(capturedLogs[0].msg).toBe('An error occurred for user 12345')
+    expect(capturedLogs[0].msg_tpl).toBe('An error occurred for user {user_id}')
+    expect(capturedLogs[0].extra).toEqual({
+      user_id: 12345,
+    })
+    expect(capturedLogs[0].err).toEqual({
+      message: 'This is an error',
+      type: 'Error',
+      stack: expect.any(String) as unknown,
+    })
+  })
 
-      expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('Count: 42, Price: 19.99')
+  it('merges the pino "nested object" into the structured data', () => {
+    const obj = { foo: 'bar', bar: { hello: 'world' } }
+    logger.info(obj, 'User {user_id} logged in', {
+      user_id: 12345,
     })
 
-    it('should include the error object using the configured pino error key', () => {
-      const error = new Error('This is an error')
-      logger.error(error, 'An error occurred for user {user_id}', {
-        user_id: 12345,
-      })
+    expect(capturedLogs).toHaveLength(1)
+    expect(capturedLogs[0].msg).toBe('User 12345 logged in')
+    expect(capturedLogs[0].msg_tpl).toBe('User {user_id} logged in')
+    expect(capturedLogs[0].extra).toEqual({
+      user_id: 12345,
+      ...obj,
+    })
+  })
 
-      expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('An error occurred for user 12345')
-      expect(capturedLogs[0].msg_tpl).toBe(
-        'An error occurred for user {user_id}',
-      )
-      expect(capturedLogs[0].extra).toEqual({
-        user_id: 12345,
-      })
-      expect(capturedLogs[0].err).toEqual({
-        message: 'This is an error',
-        type: 'Error',
-        stack: expect.any(String) as unknown,
-      })
+  it('structured data takes precedence of the pino "nested object"', () => {
+    const obj = { foo: 'bar', user_id: 9999 }
+    logger.info(obj, 'User {user_id} logged in', {
+      user_id: 12345,
     })
 
-    it('should merge the pino "nested object" into the structured data', () => {
-      const obj = { foo: 'bar', bar: { hello: 'world' } }
-      logger.info(obj, 'User {user_id} logged in', {
-        user_id: 12345,
-      })
-
-      expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('User 12345 logged in')
-      expect(capturedLogs[0].msg_tpl).toBe('User {user_id} logged in')
-      expect(capturedLogs[0].extra).toEqual({
-        user_id: 12345,
-        ...obj,
-      })
-    })
-
-    it('structured data should take precedence of the pino "nested object"', () => {
-      const obj = { foo: 'bar', user_id: 9999 }
-      logger.info(obj, 'User {user_id} logged in', {
-        user_id: 12345,
-      })
-
-      expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('User 12345 logged in')
-      expect(capturedLogs[0].msg_tpl).toBe('User {user_id} logged in')
-      expect(capturedLogs[0].extra).toEqual({
-        user_id: 12345,
-        foo: 'bar',
-      })
+    expect(capturedLogs).toHaveLength(1)
+    expect(capturedLogs[0].msg).toBe('User 12345 logged in')
+    expect(capturedLogs[0].msg_tpl).toBe('User {user_id} logged in')
+    expect(capturedLogs[0].extra).toEqual({
+      user_id: 12345,
+      foo: 'bar',
     })
   })
 })
