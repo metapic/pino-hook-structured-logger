@@ -63,7 +63,7 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
       formattedMessage = formatMessageTemplate(formattedMessage, structured)
     }
 
-    const logObj: Record<string, unknown> = {
+    const obj: Record<string, unknown> = {
       [messageTemplateKey]: messageTemplate,
       ...(error ? { [errorKey]: error } : {}),
       ...(args.length > 0 ? { [argsKey]: args } : {}),
@@ -72,7 +72,7 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
         : {}),
     }
 
-    method.apply(this, [logObj, formattedMessage, ...args])
+    method.apply(this, [obj, formattedMessage, ...args])
   },
 })
 
