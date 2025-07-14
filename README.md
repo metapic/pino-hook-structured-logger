@@ -117,3 +117,39 @@ const logger = pino({
   }),
 })
 ```
+
+## Performance
+
+The added functionality comes at a cost: the structured logger achieves roughly **half** the throughput of the standard pino logger. Pino is _pretty fast_, so in most real-world use cases this throughput is totally fine.
+
+See benchmark tests in [`index.bench.ts`](./test/index.bench.ts).
+
+```
+$ npm run bench
+
+> @metapic/pino-hook-structured-logger@0.0.0-development bench
+> vitest bench
+
+Benchmarking is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.
+
+DEV  v3.2.4 /workspaces/pino-hook-structured-logger
+
+  ✓ test/index.bench.ts > info with params 2811ms
+      name                       hz     min      max    mean     p75     p99    p995    p999     rme  samples
+    · standard logger    893,856.90  0.0006  33.1586  0.0011  0.0007  0.0013  0.0016  0.0038  ±9.51%   893857
+    · structured logger  388,408.52  0.0018   7.2970  0.0026  0.0020  0.0034  0.0038  0.0085  ±4.67%   388409
+
+  ✓ test/index.bench.ts > info with message only 3037ms
+      name                         hz     min      max    mean     p75     p99    p995    p999      rme  samples
+    · standard logger    1,073,454.90  0.0003  29.2559  0.0009  0.0004  0.0015  0.0017  0.0041  ±12.81%  1073455
+    · structured logger    547,664.58  0.0011  15.1655  0.0018  0.0013  0.0025  0.0027  0.0062   ±6.78%   547665
+
+BENCH  Summary
+
+  standard logger - test/index.bench.ts > info with params
+    2.30x faster than structured logger
+
+  standard logger - test/index.bench.ts > info with message only
+    1.96x faster than structured logger
+```
