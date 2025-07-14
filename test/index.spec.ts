@@ -149,6 +149,26 @@ describe('structured logger', () => {
           'arg1',
           { arg_num: 2 },
         ),
+      () =>
+        logger
+          .child({ location: 'Salzburg' })
+          .info('User {user_id} logged in from {location}', 12345, 'arg1', {
+            arg_num: 2,
+          }),
+
+      () =>
+        logger
+          .child({ location: 'Salzburg' })
+          .child({ user_id: 12345 })
+          .info('User {user_id} logged in from {location}', 'arg1', {
+            arg_num: 2,
+          }),
+      () =>
+        logger
+          .child({ location: 'Salzburg', user_id: 12345 })
+          .info('User {user_id} logged in from {location}', 'arg1', {
+            arg_num: 2,
+          }),
     ])('%s', (log) => {
       log()
 
@@ -310,9 +330,24 @@ describe('structured logger', () => {
     })
   })
 
-  it('structured data takes precedence of the pino "nested object"', () => {
+  it('structured data takes precedence over the pino "mergingObject"', () => {
     const obj = { foo: 'bar', user_id: 9999 }
     logger.info(obj, 'User {user_id} logged in', {
+      user_id: 12345,
+    })
+
+    expect(capturedLogs).toHaveLength(1)
+    expect(capturedLogs[0].msg).toBe('User 12345 logged in')
+    expect(capturedLogs[0].msg_tpl).toBe('User {user_id} logged in')
+    expect(capturedLogs[0].data).toEqual({
+      user_id: 12345,
+      foo: 'bar',
+    })
+  })
+
+  it('structured data takes precedence over the pino bindings', () => {
+    const obj = { foo: 'bar', user_id: 9999 }
+    logger.child(obj).info('User {user_id} logged in', {
       user_id: 12345,
     })
 

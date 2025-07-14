@@ -54,19 +54,18 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
       return
     }
 
-    const { messageTemplate, structured, error } =
-      tryExtractObjectAndMessageTemplate(args)
-
+    const { messageTemplate, structured, error } = extractStructuredData(args)
+    const structuredWithBindings = { ...this.bindings(), ...structured }
     const formattedMessage = reformatMessageWithRemainingArgs(
-      formatMessage(messageTemplate, structured),
-      structured,
+      formatMessage(messageTemplate, structuredWithBindings),
+      structuredWithBindings,
       args,
     )
 
     const obj: Record<string, unknown> = {
       [messageTemplateKey]: messageTemplate,
-      ...wrapError(structured, error, { errorKey, unwrapErrors }),
-      ...wrapStructuredData(structured, {
+      ...wrapError(structuredWithBindings, error, { errorKey, unwrapErrors }),
+      ...wrapStructuredData(structuredWithBindings, {
         dataKey,
         unwrapKeys,
       }),
@@ -88,7 +87,7 @@ const formatMessage = (
   })
 }
 
-const tryExtractObjectAndMessageTemplate = (
+const extractStructuredData = (
   args: Parameters<LogFn>,
 ): {
   messageTemplate: string

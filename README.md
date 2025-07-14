@@ -22,7 +22,15 @@ logger.info('User {user_id} logged in from {location}', {
   location: 'Salzburg',
 })
 
-// pino's mergingObject is a valid source of structured data too:
+// existing bindings (child logger) are respected.
+// the dedicated structured data object takes precedence over the bindings,
+// if both are present and there are any conflicting keys.
+const loggerWithBindings = logger.child({ user_id: 12345 })
+loggerWithBindings.info('User {user_id} logged in from {location}', 'Salzburg')
+
+// pino's mergingObject is a valid source of structured data too.
+// the dedicated structured data object takes precedence over the mergingObject,
+// if both are present and there are any conflicting keys.
 logger.info(
   { user_id: 12345, location: 'Salzburg' },
   'User {user_id} logged in from {location}',
