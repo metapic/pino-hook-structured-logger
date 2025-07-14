@@ -80,6 +80,27 @@ describe('structured logger', () => {
       expect(capturedLogs[0].params).toEqual(['arg1'])
     })
 
+    it('respects pino configured error key', () => {
+      const customLogger = pino(
+        {
+          errorKey: 'pinoError',
+          hooks: structuredLogger(),
+        },
+        mockStream,
+      )
+
+      const error = new Error('Test error')
+      customLogger.error(error, 'An error occurred')
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].err).toBeUndefined()
+      expect(capturedLogs[0].pinoError).toEqual({
+        message: 'Test error',
+        type: 'Error',
+        stack: expect.any(String) as unknown,
+      })
+    })
+
     it('does not log when level is below configured threshold', () => {
       const customLogger = pino(
         {

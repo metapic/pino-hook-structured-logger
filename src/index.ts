@@ -1,11 +1,38 @@
 import { LogFn, Logger } from 'pino'
 
 export type StructuredLoggerOptions = {
+  /**
+   * Key for the message template in the structured log object.
+   * Defaults to 'msg_tpl'.
+   */
   messageTemplateKey?: string
+
+  /**
+   * Key for the structured data in the log object.
+   * Defaults to 'data'.
+   */
   dataKey?: string
+
+  /**
+   * Key for the *unmatched* arguments in the log object.
+   * Defaults to 'args'.
+   */
   argsKey?: string
-  errorKey?: string
+
+  /**
+   * Whether to move the error object from the structured data
+   * to the top-level error key.
+   * Defaults to true.
+   */
   unwrapErrors?: boolean
+
+  /**
+   * Keys to move from the structured data to the top-level
+   * log object, if they exist.
+   * This is useful for moving keys that are frequently used
+   * in queries or filters, such as 'user_id', 'context', etc.
+   * Defaults to an empty array, meaning no keys are unwrapped.
+   */
   unwrapKeys?: string[]
 }
 
@@ -44,7 +71,6 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
       messageTemplateKey = 'msg_tpl',
       dataKey = 'data',
       argsKey = 'args',
-      errorKey = 'err', // todo: find a way to get the error key from pino. this[Symbol.for('pino.errorKey')]
       unwrapErrors = true,
       unwrapKeys = [],
     } = opts
@@ -64,7 +90,10 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
 
     const obj: Record<string, unknown> = {
       [messageTemplateKey]: messageTemplate,
-      ...wrapError(structuredWithBindings, error, { errorKey, unwrapErrors }),
+      ...wrapError(structuredWithBindings, error, {
+        errorKey: getErrorKey(this),
+        unwrapErrors,
+      }),
       ...wrapStructuredData(structuredWithBindings, {
         dataKey,
         unwrapKeys,
@@ -172,7 +201,7 @@ const tryExtractRemainingPlaceholders = (messageTemplate: string): string[] => {
 const wrapError = (
   structured: Record<string, unknown>,
   currentError: Error | undefined,
-  opts: Required<Pick<StructuredLoggerOptions, 'errorKey' | 'unwrapErrors'>>,
+  opts: { errorKey: string; unwrapErrors: boolean },
 ) => {
   if (currentError) {
     return { [opts.errorKey]: currentError }
@@ -189,7 +218,7 @@ const wrapError = (
 
 const wrapStructuredData = (
   structured: Record<string, unknown>,
-  opts: Required<Pick<StructuredLoggerOptions, 'dataKey' | 'unwrapKeys'>>,
+  opts: { dataKey: string; unwrapKeys: string[] },
 ) => {
   if (Object.keys(structured).length === 0) {
     return {}
@@ -209,4 +238,35 @@ const wrapStructuredData = (
     ...unwrapped,
     [opts.dataKey]: structured,
   }
+}
+
+const getErrorKey = (logger: Logger): string => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const cachedErrorKey: string | undefined = (logger as any).__cachedErrorKey
+  if (cachedErrorKey) {
+    return cachedErrorKey
+  }
+
+  const errorKey = getPinoConfigValue<string>(logger, 'pino.errorKey') ?? 'err'
+  Object.defineProperty(logger, '__cachedErrorKey', {
+    value: errorKey,
+    writable: false,
+    configurable: false,
+    enumerable: false,
+  })
+
+  return errorKey
+}
+
+const getPinoConfigValue = <T>(logger: Logger, key: string) => {
+  const errorKeySymbol = Object.getOwnPropertySymbols(logger).find(
+    (s) => s.description === key,
+  )
+
+  if (!errorKeySymbol) {
+    return undefined
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  return (logger as any)[errorKeySymbol] as T
 }

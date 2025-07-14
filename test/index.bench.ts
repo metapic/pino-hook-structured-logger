@@ -36,7 +36,7 @@ describe('info with params', () => {
   )
 
   bench(
-    'structured logger ',
+    'structured logger',
     () =>
       structuredPino.info(
         {
