@@ -234,6 +234,10 @@ const wrapStructuredData = (
     }
   }
 
+  if (Object.keys(structured).length === 0) {
+    return unwrapped
+  }
+
   return {
     ...unwrapped,
     [opts.dataKey]: structured,

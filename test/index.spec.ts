@@ -240,6 +240,37 @@ describe('structured logger', () => {
     expect(capturedLogs[0].msg).toBe('Count: 42, Price: 19.99')
   })
 
+  it('does not add structured data property if there is no data', () => {
+    logger.info('Just a simple log message')
+
+    expect(capturedLogs).toHaveLength(1)
+    expect(capturedLogs[0].msg).toBe('Just a simple log message')
+    expect(capturedLogs[0].msg_tpl).toBe('Just a simple log message')
+    expect(capturedLogs[0].data).toBeUndefined()
+  })
+
+  it('does not add structured data property if there is no data after unwrapping', () => {
+    const customLogger = pino(
+      {
+        hooks: structuredLogger({
+          unwrapKeys: ['ctx', 'bar'],
+        }),
+      },
+      mockStream,
+    )
+
+    customLogger
+      .child({ ctx: 'test123' })
+      .info('Just a simple log message with {bar}', 12345)
+
+    expect(capturedLogs).toHaveLength(1)
+    expect(capturedLogs[0].msg).toBe('Just a simple log message with 12345')
+    expect(capturedLogs[0].msg_tpl).toBe('Just a simple log message with {bar}')
+    expect(capturedLogs[0].data).toBeUndefined()
+    expect(capturedLogs[0].ctx).toBe('test123')
+    expect(capturedLogs[0].bar).toBe(12345)
+  })
+
   describe('error handling', () => {
     it('includes the error object using the configured pino error key', () => {
       const error = new Error('This is an error')
