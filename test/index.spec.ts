@@ -35,6 +35,7 @@ describe('structured logger', () => {
         mockStream,
       )
 
+      // @ts-expect-error This is a non-standard pino usage
       customLogger.info('Hello {name}', { name: 'World' }, 'arg1')
 
       expect(capturedLogs).toHaveLength(1)
@@ -53,6 +54,7 @@ describe('structured logger', () => {
         mockStream,
       )
 
+      // @ts-expect-error This is a non-standard pino usage
       customLogger.info('Hello {name}', { name: 'World' }, 'arg1')
 
       expect(capturedLogs).toHaveLength(1)
@@ -71,6 +73,7 @@ describe('structured logger', () => {
         mockStream,
       )
 
+      // @ts-expect-error This is a non-standard pino usage
       customLogger.info('Hello {name}', { name: 'World' }, 'arg1')
 
       expect(capturedLogs).toHaveLength(1)
@@ -131,6 +134,7 @@ describe('structured logger', () => {
       () =>
         logger.info(
           'User {user_id} logged in from {location}',
+          // @ts-expect-error This is a non-standard pino usage
           {
             user_id: 12345,
             location: 'Salzburg',
@@ -149,6 +153,7 @@ describe('structured logger', () => {
       () =>
         logger.info(
           'User {user_id} logged in from {location}',
+          // @ts-expect-error This is a non-standard pino usage
           12345,
           'Salzburg',
           'arg1',
@@ -165,6 +170,7 @@ describe('structured logger', () => {
       () =>
         logger.info(
           'User {user_id} logged in from {location}',
+          // @ts-expect-error This is a non-standard pino usage
           { location: 'Salzburg' },
           12345,
           'arg1',
@@ -173,6 +179,7 @@ describe('structured logger', () => {
       () =>
         logger
           .child({ location: 'Salzburg' })
+          // @ts-expect-error This is a non-standard pino usage
           .info('User {user_id} logged in from {location}', 12345, 'arg1', {
             arg_num: 2,
           }),
@@ -181,12 +188,14 @@ describe('structured logger', () => {
         logger
           .child({ location: 'Salzburg' })
           .child({ user_id: 12345 })
+          // @ts-expect-error This is a non-standard pino usage
           .info('User {user_id} logged in from {location}', 'arg1', {
             arg_num: 2,
           }),
       () =>
         logger
           .child({ location: 'Salzburg', user_id: 12345 })
+          // @ts-expect-error This is a non-standard pino usage
           .info('User {user_id} logged in from {location}', 'arg1', {
             arg_num: 2,
           }),
@@ -207,6 +216,7 @@ describe('structured logger', () => {
   })
 
   it('handles missing template parameters', () => {
+    // @ts-expect-error This is a non-standard pino usage
     logger.info('User {user_id} logged in from {location}', {
       user_id: 12345,
       // location is missing
@@ -223,6 +233,7 @@ describe('structured logger', () => {
   })
 
   it('handles empty template parameters', () => {
+    // @ts-expect-error This is a non-standard pino usage
     logger.info('Message with {empty}', { empty: '' })
 
     expect(capturedLogs).toHaveLength(1)
@@ -231,6 +242,7 @@ describe('structured logger', () => {
   })
 
   it('handles numeric template parameters', () => {
+    // @ts-expect-error This is a non-standard pino usage
     logger.info('Count: {count}, Price: {price}', {
       count: 42,
       price: 19.99,
@@ -261,6 +273,7 @@ describe('structured logger', () => {
 
     customLogger
       .child({ ctx: 'test123' })
+      // @ts-expect-error This is a non-standard pino usage
       .info('Just a simple log message with {bar}', 12345)
 
     expect(capturedLogs).toHaveLength(1)
@@ -399,6 +412,7 @@ describe('structured logger', () => {
 
   it('structured data takes precedence over the pino bindings', () => {
     const obj = { foo: 'bar', user_id: 9999 }
+    // @ts-expect-error This is a non-standard pino usage
     logger.child(obj).info('User {user_id} logged in', {
       user_id: 12345,
     })
@@ -414,9 +428,13 @@ describe('structured logger', () => {
 
   describe('pino default behaviour', () => {
     it('maintains pino log levels', () => {
+      // @ts-expect-error This is a non-standard pino usage
       logger.debug('Debug {message}', { message: 'test' })
+      // @ts-expect-error This is a non-standard pino usage
       logger.info('Info {message}', { message: 'test' })
+      // @ts-expect-error This is a non-standard pino usage
       logger.warn('Warning {code}', { code: '404' })
+      // @ts-expect-error This is a non-standard pino usage
       logger.error('Error {type}', { type: 'validation' })
 
       expect(capturedLogs).toHaveLength(4)

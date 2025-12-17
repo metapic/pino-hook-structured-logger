@@ -17,6 +17,7 @@
     "noFallthroughCasesInSwitch": true,
   },
   "include": [
+    "*.mjs",
     "src/**/*.ts",
     "test/**/*.ts"
   ]
