@@ -1,6 +1,6 @@
 # pino-hook-structured-logger
 
-Adds support for [structured logs](#structured-logging) to [pino](https://github.com/pinojs/pino) via a [`logMethod` hook](https://getpino.io/#/docs/api?id=logmethod).
+Adds support for [structured logs](#structured-logging) to [Pino](https://github.com/pinojs/pino) via a [`logMethod` hook](https://getpino.io/#/docs/api?id=logmethod).
 
 ## Structured Logging
 
@@ -28,7 +28,7 @@ logger.info('User {user_id} logged in from {location}', {
 const loggerWithBindings = logger.child({ user_id: 12345 })
 loggerWithBindings.info('User {user_id} logged in from {location}', 'Salzburg')
 
-// pino's mergingObject is a valid source of structured data too.
+// Pino's mergingObject is a valid source of structured data too.
 // the dedicated structured data object takes precedence over the mergingObject,
 // if both are present and there are any conflicting keys.
 logger.info(
@@ -101,7 +101,7 @@ logger.info(
 
 ## Usage
 
-Simply configure your pino instance to use `structuredLogger()` as hooks. You can _optionally_ customize the behaviour of the structured logger by passing a [configuration object](./src/index.ts).
+Simply configure your Pino instance to use `structuredLogger()` as hooks. You can _optionally_ customize the behaviour of the structured logger by passing a [configuration object](./src/index.ts).
 
 ```ts
 import pino from 'pino'
@@ -120,7 +120,7 @@ const logger = pino({
 
 ## Performance
 
-The added functionality comes at a cost: the structured logger achieves roughly **half** the throughput of the standard pino logger. Pino is _pretty fast_, so in most real-world use cases this throughput is totally fine.
+The added functionality comes at a cost: the structured logger achieves roughly **half** the throughput of the standard Pino logger. Pino is _pretty fast_, so in most real-world use cases this throughput is totally fine.
 
 See benchmark tests in [`index.bench.ts`](./test/index.bench.ts).
 

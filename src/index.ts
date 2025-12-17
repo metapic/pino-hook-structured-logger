@@ -37,33 +37,56 @@ export type StructuredLoggerOptions = {
 }
 
 /**
- * This is the FULL list of supported argument combinations:
+ * Sets up structured logging for a Pino logger. Usage:
  *
- *  2.m   logger.log('message', arg1)
- *  2.mo  logger.log('message', { obj })
- *  2.om  logger.log({ obj }, 'message')
- *  2.em  logger.log(err, 'message')
+ * ```ts
+ * import pino from 'pino'
+ * import { structuredLogger } from 'path-to-structured-logger'
  *
- *  3.m   logger.log(err, 'message', arg1, arg2)
- *  3.mo  logger.log({ obj }, 'message', arg1)
- *  3.om  logger.log({ obj }, 'message', arg)
- *  3.omo logger.log({ obj }, 'message', { obj })
- *  3.em  logger.log(err, 'message', arg1)
- *  3.emo logger.log(err, 'message', { obj })
+ * const logger = pino({
+ *   level: 'debug',
+ *   hooks: structuredLogger({
+ *     messageTemplateKey: 'msg_tpl',
+ *     dataKey: 'data',
+ *     argsKey: 'args',
+ *     unwrapErrors: true,
+ *   }),
+ * })
+ * ```
  *
- *  4.m   logger.log('message', arg1, arg2, arg3)
- *  4.mo  logger.log('message', { obj }, arg1, arg2)
- *  4.om  logger.log({ obj }, 'message', arg1, arg2)
- *  4.omo logger.log({ obj }, 'message', { obj }, arg1)
- *  4.em  logger.log(err, 'message', arg1, arg2)
- *  4.emo logger.log(err, 'message', { obj }, arg1)
+ * This is the **FULL** list of supported argument combinations;
+ * where `m` is the _message_, `o` is an object with structured data
+ * (the Pino "merging object"), and `e` is an `Error` object.
  *
- *  n.m   logger.log('message', arg1, arg2, arg3, arg4, ...)
- *  n.mo  logger.log('message', { obj }, arg1, arg2, arg3, ...)
- *  n.om  logger.log({ obj }, 'message', arg1, arg2, arg3, ...)
- *  n.omo logger.log({ obj }, 'message', { obj }, arg1, arg2, arg3, ...)
- *  n.em  logger.log(err, 'message', arg1, arg2, arg3, ...)
- *  n.emo logger.log(err, 'message', { obj }, arg1, arg2, arg3, ...)
+ * - 2 arguments:
+ *   - `2.m`   -> `logger.log('message', arg1)`
+ *   - `2.mo`  -> `logger.log('message', { obj })`
+ *   - `2.om`  -> `logger.log({ obj }, 'message')`
+ *   - `2.em`  -> `logger.log(err, 'message')`
+ *
+ * - 3 arguments:
+ *   - `3.m`   -> `logger.log(err, 'message', arg1, arg2)`
+ *   - `3.mo`  -> `logger.log({ obj }, 'message', arg1)`
+ *   - `3.om`  -> `logger.log({ obj }, 'message', arg)`
+ *   - `3.omo` -> `logger.log({ obj }, 'message', { obj })`
+ *   - `3.em`  -> `logger.log(err, 'message', arg1)`
+ *   - `3.emo` -> `logger.log(err, 'message', { obj })`
+ *
+ * - 4 arguments:
+ *   - `4.m`   -> `logger.log('message', arg1, arg2, arg3)`
+ *   - `4.mo`  -> `logger.log('message', { obj }, arg1, arg2)`
+ *   - `4.om`  -> `logger.log({ obj }, 'message', arg1, arg2)`
+ *   - `4.omo` -> `logger.log({ obj }, 'message', { obj }, arg1)`
+ *   - `4.em`  -> `logger.log(err, 'message', arg1, arg2)`
+ *   - `4.emo` -> `logger.log(err, 'message', { obj }, arg1)`
+ *
+ * - n arguments:
+ *   - `n.m`   -> `logger.log('message', arg1, arg2, arg3, arg4, ...)`
+ *   - `n.mo`  -> `logger.log('message', { obj }, arg1, arg2, arg3, ...)`
+ *   - `n.om`  -> `logger.log({ obj }, 'message', arg1, arg2, arg3, ...)`
+ *   - `n.omo` -> `logger.log({ obj }, 'message', { obj }, arg1, arg2, arg3, ...)`
+ *   - `n.em`  -> `logger.log(err, 'message', arg1, arg2, arg3, ...)`
+ *   - `n.emo` -> `logger.log(err, 'message', { obj }, arg1, arg2, arg3, ...)`
  */
 export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
   logMethod(this: Logger, args: Parameters<LogFn>, method: LogFn) {

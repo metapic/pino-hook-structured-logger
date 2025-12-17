@@ -1,7 +1,7 @@
 {
   "name": "@metapic/pino-hook-structured-logger",
   "version": "0.0.0-development",
-  "description": "Adds support for structured logs to pino via a logMethod hook.",
+  "description": "Adds support for structured logs to Pino via a logMethod hook.",
   "main": "./dist/index.js",
   "files": [
     "dist/**/*"
