@@ -1,6 +1,6 @@
 {
   "name": "metapic/pino-hook-structured-logger",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:24",
   "features": {
     "ghcr.io/dstockhammer/devcontainer-features/zsh:1": {}
   },
