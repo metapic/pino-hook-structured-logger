@@ -56,7 +56,7 @@ export type StructuredLoggerOptions = {
  *
  * This is the **FULL** list of supported argument combinations;
  * where `m` is the _message_, `o` is an object with structured data
- * (the Pino "merging object"), and `e` is an `Error` object.
+ * (the Pino merging object), and `e` is an `Error` object.
  *
  * - 2 arguments:
  *   - `2.m`   -> `logger.log('message', arg1)`
