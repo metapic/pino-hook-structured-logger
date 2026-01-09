@@ -39,7 +39,7 @@
     "structured-logging"
   ],
   "peerDependencies": {
-    "pino": "^9.0.0"
+    "pino": "^9 || ^10"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
