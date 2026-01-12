@@ -1,5 +1,3 @@
-// @ts-check
-
 import eslint from '@eslint/js'
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
 import { defineConfig } from 'eslint/config'
@@ -11,10 +9,12 @@ export default defineConfig(
   ...tseslint.configs.stylisticTypeChecked,
   eslintPluginPrettierRecommended,
   {
+    ignores: ['node_modules/', 'dist/', 'dist-*/', 'coverage/', '.*/'],
+  },
+  {
     languageOptions: {
       parserOptions: {
         projectService: true,
-        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {

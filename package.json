@@ -17,7 +17,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "clean": "rm -rf ./dist",
-    "lint": "tsc --noEmit && eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "lint": "tsc --noEmit && eslint --cache",
     "semantic-release": "semantic-release",
     "test:watch": "vitest --watch",
     "test": "vitest --coverage",
@@ -51,6 +51,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^5.5.4",
+    "jiti": "^2.6.1",
     "prettier": "^3.7.4",
     "prettier-plugin-organize-imports": "^4.3.0",
     "semantic-release": "^25.0.2",
