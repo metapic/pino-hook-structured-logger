@@ -187,7 +187,7 @@ const extractStructuredData = (
     if (obj instanceof Error) {
       return { messageTemplate: obj.message || '', structured: {}, error: obj }
     }
-    const structured = obj as Record<string, unknown>
+    const structured = obj
     const errValue = structured[errorKey]
     const messageTemplate =
       errValue instanceof Error ? errValue.message || '' : ''
