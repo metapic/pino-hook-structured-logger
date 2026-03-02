@@ -108,10 +108,7 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
       return
     }
 
-    const { messageTemplate, structured, error } = extractStructuredData(
-      args,
-      getErrorKey(this),
-    )
+    const { messageTemplate, structured, error } = extractStructuredData(args)
     const structuredWithBindings = { ...this.bindings(), ...structured }
     const formattedMessage = reformatMessageWithRemainingArgs(
       formatMessage(messageTemplate, structuredWithBindings),
@@ -149,7 +146,6 @@ const formatMessage = (
 
 const extractStructuredData = (
   args: Parameters<LogFn>,
-  errorKey: string,
 ): {
   messageTemplate: string
   structured: Record<string, unknown>
@@ -185,13 +181,10 @@ const extractStructuredData = (
   if (typeof args[0] === 'object' && args[0] !== null) {
     const obj = args.shift() as Error | Record<string, unknown>
     if (obj instanceof Error) {
-      return { messageTemplate: obj.message || '', structured: {}, error: obj }
+      return { messageTemplate: '', structured: {}, error: obj }
     }
     const structured = obj
-    const errValue = structured[errorKey]
-    const messageTemplate =
-      errValue instanceof Error ? errValue.message || '' : ''
-    return { messageTemplate, structured }
+    return { messageTemplate: '', structured }
   }
 
   // this should never happen
