@@ -58,6 +58,11 @@ export type StructuredLoggerOptions = {
  * where `m` is the _message_, `o` is an object with structured data
  * (the Pino merging object), and `e` is an `Error` object.
  *
+ * - 1 argument:
+ *   - `1.m`   -> `logger.log('message')`
+ *   - `1.o`   -> `logger.log({ obj })`
+ *   - `1.e`   -> `logger.log(err)`
+ *
  * - 2 arguments:
  *   - `2.m`   -> `logger.log('message', arg1)`
  *   - `2.mo`  -> `logger.log('message', { obj })`
@@ -103,7 +108,10 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
       return
     }
 
-    const { messageTemplate, structured, error } = extractStructuredData(args)
+    const { messageTemplate, structured, error } = extractStructuredData(
+      args,
+      getErrorKey(this),
+    )
     const structuredWithBindings = { ...this.bindings(), ...structured }
     const formattedMessage = reformatMessageWithRemainingArgs(
       formatMessage(messageTemplate, structuredWithBindings),
@@ -141,6 +149,7 @@ const formatMessage = (
 
 const extractStructuredData = (
   args: Parameters<LogFn>,
+  errorKey: string,
 ): {
   messageTemplate: string
   structured: Record<string, unknown>
@@ -171,7 +180,21 @@ const extractStructuredData = (
     }
   }
 
-  // this should never happen. WIP
+  // n.o — object only, no message string
+  // n.e — error only, no message string
+  if (typeof args[0] === 'object' && args[0] !== null) {
+    const obj = args.shift() as Error | Record<string, unknown>
+    if (obj instanceof Error) {
+      return { messageTemplate: obj.message || '', structured: {}, error: obj }
+    }
+    const structured = obj
+    const errValue = structured[errorKey]
+    const messageTemplate =
+      errValue instanceof Error ? errValue.message || '' : ''
+    return { messageTemplate, structured }
+  }
+
+  // this should never happen
   return { messageTemplate: '', structured: {}, error: undefined }
 }
 

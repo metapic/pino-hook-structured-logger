@@ -426,6 +426,180 @@ describe('structured logger', () => {
     })
   })
 
+  describe('object without message', () => {
+    it('uses error message when only an Error is passed', () => {
+      const error = new Error('Something went wrong')
+      logger.error(error)
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('Something went wrong')
+      expect(capturedLogs[0].msg_tpl).toBe('Something went wrong')
+      expect(capturedLogs[0].err).toEqual({
+        message: 'Something went wrong',
+        type: 'Error',
+        stack: expect.any(String) as unknown,
+      })
+      expect(capturedLogs[0].data).toBeUndefined()
+    })
+
+    it('uses err.message when object with error is passed', () => {
+      const error = new Error('Internal server error')
+      logger.error({ err: error })
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('Internal server error')
+      expect(capturedLogs[0].msg_tpl).toBe('Internal server error')
+      expect(capturedLogs[0].err).toEqual({
+        message: 'Internal server error',
+        type: 'Error',
+        stack: expect.any(String) as unknown,
+      })
+      expect(capturedLogs[0].data).toBeUndefined()
+    })
+
+    it('preserves extra structured data alongside error', () => {
+      const error = new Error('Unhandled exception')
+      logger.error({ err: error, ctx: 'ExceptionFilter', status_code: 500 })
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('Unhandled exception')
+      expect(capturedLogs[0].err).toEqual({
+        message: 'Unhandled exception',
+        type: 'Error',
+        stack: expect.any(String) as unknown,
+      })
+      expect(capturedLogs[0].data).toEqual({
+        ctx: 'ExceptionFilter',
+        status_code: 500,
+      })
+    })
+
+    it('handles plain object without error', () => {
+      logger.info({ user_id: 123, action: 'login' })
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg_tpl).toBe('')
+      expect(capturedLogs[0].data).toEqual({
+        user_id: 123,
+        action: 'login',
+      })
+      expect(capturedLogs[0].err).toBeUndefined()
+    })
+
+    it('respects custom errorKey with object-only pattern', () => {
+      const customLogger = pino(
+        {
+          errorKey: 'pinoError',
+          hooks: structuredLogger(),
+        },
+        mockStream,
+      )
+
+      const error = new Error('Custom key error')
+      customLogger.error({ pinoError: error, ctx: 'Test' })
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('Custom key error')
+      expect(capturedLogs[0].pinoError).toEqual({
+        message: 'Custom key error',
+        type: 'Error',
+        stack: expect.any(String) as unknown,
+      })
+      expect(capturedLogs[0].data).toEqual({ ctx: 'Test' })
+    })
+
+    it('handles HttpException-like errors (e.g. InternalServerErrorException)', () => {
+      // Simulates what nestjs-pino sends for NestJS HttpExceptions
+      class HttpException extends Error {
+        constructor(
+          public readonly response: string | object,
+          public readonly status: number,
+        ) {
+          super(
+            typeof response === 'string' ? response : JSON.stringify(response),
+          )
+          this.name = 'InternalServerErrorException'
+        }
+        getStatus() {
+          return this.status
+        }
+        getResponse() {
+          return this.response
+        }
+      }
+
+      const exception = new HttpException('Internal Server Error', 500)
+      logger.error({ err: exception, ctx: 'ExceptionsHandler' })
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('Internal Server Error')
+      expect(capturedLogs[0].err).toEqual(
+        expect.objectContaining({
+          message: 'Internal Server Error',
+          stack: expect.any(String) as unknown,
+        }),
+      )
+      expect(capturedLogs[0].data).toEqual({ ctx: 'ExceptionsHandler' })
+    })
+
+    it('handles HttpException-like errors with object response', () => {
+      class HttpException extends Error {
+        constructor(
+          public readonly response: string | object,
+          public readonly status: number,
+        ) {
+          super(
+            typeof response === 'string' ? response : JSON.stringify(response),
+          )
+          this.name = 'ServiceUnavailableException'
+        }
+        getStatus() {
+          return this.status
+        }
+        getResponse() {
+          return this.response
+        }
+      }
+
+      const exception = new HttpException(
+        {
+          statusCode: 503,
+          message: 'Database connection failed',
+          error: 'Service Unavailable',
+        },
+        503,
+      )
+      logger.error({ err: exception, ctx: 'DatabaseModule' })
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe(
+        '{"statusCode":503,"message":"Database connection failed","error":"Service Unavailable"}',
+      )
+      expect(capturedLogs[0].err).toEqual(
+        expect.objectContaining({
+          message:
+            '{"statusCode":503,"message":"Database connection failed","error":"Service Unavailable"}',
+          stack: expect.any(String) as unknown,
+        }),
+      )
+      expect(capturedLogs[0].data).toEqual({ ctx: 'DatabaseModule' })
+    })
+
+    it('merges child bindings with object-only pattern', () => {
+      logger.child({ request_id: 'abc-123' }).error({ err: new Error('fail') })
+
+      expect(capturedLogs).toHaveLength(1)
+      expect(capturedLogs[0].msg).toBe('fail')
+      expect(capturedLogs[0].err).toEqual({
+        message: 'fail',
+        type: 'Error',
+        stack: expect.any(String) as unknown,
+      })
+      expect(capturedLogs[0].data).toEqual({ request_id: 'abc-123' })
+    })
+  })
+
   describe('pino default behaviour', () => {
     it('maintains pino log levels', () => {
       // @ts-expect-error This is a non-standard pino usage

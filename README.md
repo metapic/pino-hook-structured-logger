@@ -67,6 +67,38 @@ All examples produce this output:
 }
 ```
 
+#### Object or Error Without Message
+
+When only an object or error is passed without a message string, the structured logger preserves all data. If an error is present, its message is used as the log message.
+
+```js
+// error only — uses error.message as the log message
+logger.error(new Error('Something went wrong'))
+
+// object with error — uses err.message as the log message
+logger.error({ err: new Error('Internal Server Error'), ctx: 'ExceptionsHandler' })
+
+// plain object — empty message, data preserved
+logger.info({ user_id: 123, action: 'login' })
+```
+
+```json
+// logger.error({ err: new Error('Internal Server Error'), ctx: 'ExceptionsHandler' })
+{
+  "level": 50,
+  "msg": "Internal Server Error",
+  "msg_tpl": "Internal Server Error",
+  "err": {
+    "message": "Internal Server Error",
+    "type": "Error",
+    "stack": "..."
+  },
+  "data": {
+    "ctx": "ExceptionsHandler"
+  }
+}
+```
+
 #### Additional Arguments
 
 Any _additional, unmatched_ arguments are captured and added to the log output with the `args` key:
