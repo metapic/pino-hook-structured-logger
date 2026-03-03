@@ -427,13 +427,13 @@ describe('structured logger', () => {
   })
 
   describe('object without message', () => {
-    it('does not use error message as log message when only an Error is passed', () => {
+    it('uses placeholder message when only an Error is passed', () => {
       const error = new Error('Something went wrong')
       logger.error(error)
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
-      expect(capturedLogs[0].msg_tpl).toBe('')
+      expect(capturedLogs[0].msg).toBe('Error')
+      expect(capturedLogs[0].msg_tpl).toBe('Error')
       expect(capturedLogs[0].err).toEqual({
         message: 'Something went wrong',
         type: 'Error',
