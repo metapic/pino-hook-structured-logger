@@ -427,13 +427,13 @@ describe('structured logger', () => {
   })
 
   describe('object without message', () => {
-    it('uses error message when only an Error is passed', () => {
+    it('does not use error message as log message when only an Error is passed', () => {
       const error = new Error('Something went wrong')
       logger.error(error)
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('Something went wrong')
-      expect(capturedLogs[0].msg_tpl).toBe('Something went wrong')
+      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg_tpl).toBe('')
       expect(capturedLogs[0].err).toEqual({
         message: 'Something went wrong',
         type: 'Error',
@@ -442,13 +442,13 @@ describe('structured logger', () => {
       expect(capturedLogs[0].data).toBeUndefined()
     })
 
-    it('uses err.message when object with error is passed', () => {
+    it('does not use err.message as log message when object with error is passed', () => {
       const error = new Error('Internal server error')
       logger.error({ err: error })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('Internal server error')
-      expect(capturedLogs[0].msg_tpl).toBe('Internal server error')
+      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg_tpl).toBe('')
       expect(capturedLogs[0].err).toEqual({
         message: 'Internal server error',
         type: 'Error',
@@ -462,7 +462,7 @@ describe('structured logger', () => {
       logger.error({ err: error, ctx: 'ExceptionFilter', status_code: 500 })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('Unhandled exception')
+      expect(capturedLogs[0].msg).toBe('')
       expect(capturedLogs[0].err).toEqual({
         message: 'Unhandled exception',
         type: 'Error',
@@ -500,7 +500,7 @@ describe('structured logger', () => {
       customLogger.error({ pinoError: error, ctx: 'Test' })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('Custom key error')
+      expect(capturedLogs[0].msg).toBe('')
       expect(capturedLogs[0].pinoError).toEqual({
         message: 'Custom key error',
         type: 'Error',
@@ -533,7 +533,7 @@ describe('structured logger', () => {
       logger.error({ err: exception, ctx: 'ExceptionsHandler' })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('Internal Server Error')
+      expect(capturedLogs[0].msg).toBe('')
       expect(capturedLogs[0].err).toEqual(
         expect.objectContaining({
           message: 'Internal Server Error',
@@ -573,9 +573,7 @@ describe('structured logger', () => {
       logger.error({ err: exception, ctx: 'DatabaseModule' })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe(
-        '{"statusCode":503,"message":"Database connection failed","error":"Service Unavailable"}',
-      )
+      expect(capturedLogs[0].msg).toBe('')
       expect(capturedLogs[0].err).toEqual(
         expect.objectContaining({
           message:
@@ -590,7 +588,7 @@ describe('structured logger', () => {
       logger.child({ request_id: 'abc-123' }).error({ err: new Error('fail') })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('fail')
+      expect(capturedLogs[0].msg).toBe('')
       expect(capturedLogs[0].err).toEqual({
         message: 'fail',
         type: 'Error',
