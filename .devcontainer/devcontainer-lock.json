@@ -1,0 +1,23 @@
+{
+  "features": {
+    "ghcr.io/devcontainers-extra/features/starship:1": {
+      "version": "1.0.10",
+      "resolved": "ghcr.io/devcontainers-extra/features/starship@sha256:3184b569f58b9106a27fff1e76566f2ac7a03835c3bc01b0853566b8503b2b54",
+      "integrity": "sha256:3184b569f58b9106a27fff1e76566f2ac7a03835c3bc01b0853566b8503b2b54"
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "version": "2.5.9",
+      "resolved": "ghcr.io/devcontainers/features/common-utils@sha256:cb0c4d3c276f157eed17935747e364178d75fee17f55c4e129966f64633deb3a",
+      "integrity": "sha256:cb0c4d3c276f157eed17935747e364178d75fee17f55c4e129966f64633deb3a"
+    },
+    "ghcr.io/dstockhammer/devcontainer-features/zsh:1": {
+      "version": "1.4.3",
+      "resolved": "ghcr.io/dstockhammer/devcontainer-features/zsh@sha256:152869922bb3691c4951754e3ed075308babf2f1f5fd6912a03ba211745f5ece",
+      "integrity": "sha256:152869922bb3691c4951754e3ed075308babf2f1f5fd6912a03ba211745f5ece",
+      "dependsOn": [
+        "ghcr.io/devcontainers/features/common-utils:2",
+        "ghcr.io/devcontainers-extra/features/starship:1"
+      ]
+    }
+  }
+}

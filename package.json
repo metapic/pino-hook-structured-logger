@@ -18,6 +18,7 @@
     "build": "tsc --project tsconfig.build.json",
     "clean": "rm -rf ./dist",
     "lint": "tsc --noEmit && eslint --cache",
+    "lint:fix": "tsc --noEmit && eslint --cache --fix",
     "semantic-release": "semantic-release",
     "test:watch": "vitest --watch",
     "test": "vitest --coverage",
@@ -42,23 +43,16 @@
     "pino": "^9 || ^10"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
-    "@types/node": "^25.0.3",
-    "@typescript-eslint/eslint-plugin": "^8.50.0",
-    "@typescript-eslint/parser": "^8.50.0",
-    "@vitest/coverage-v8": "^4.0.16",
-    "eslint": "^9.39.2",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^5.5.4",
-    "jiti": "^2.6.1",
-    "prettier": "^3.7.4",
-    "prettier-plugin-organize-imports": "^4.3.0",
-    "semantic-release": "^25.0.2",
+    "@eslint/js": "^9.39.4",
+    "@metapic/eslint-config": "^1.1.1",
+    "@types/node": "^26.1.0",
+    "@vitest/coverage-v8": "^4.1.9",
+    "eslint": "^9.39.4",
+    "jiti": "^2.7.0",
+    "semantic-release": "^25.0.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.50.0",
-    "vitest": "^4.0.16"
+    "vitest": "^4.1.9"
   },
   "release": {
     "branches": [
@@ -77,5 +71,8 @@
         }
       ]
     ]
+  },
+  "allowScripts": {
+    "unrs-resolver@1.12.2": true
   }
 }
