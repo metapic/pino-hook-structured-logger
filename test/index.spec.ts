@@ -521,9 +521,11 @@ describe('structured logger', () => {
           )
           this.name = 'InternalServerErrorException'
         }
+
         getStatus() {
           return this.status
         }
+
         getResponse() {
           return this.response
         }
@@ -554,9 +556,11 @@ describe('structured logger', () => {
           )
           this.name = 'ServiceUnavailableException'
         }
+
         getStatus() {
           return this.status
         }
+
         getResponse() {
           return this.response
         }

@@ -2,7 +2,8 @@
   "compilerOptions": {
     "incremental": true,
     "target": "es6",
-    "module": "commonjs",
+    "module": "node20",
+    "moduleResolution": "node16",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -20,5 +21,5 @@
     "*.mts",
     "src/**/*.ts",
     "test/**/*.ts"
-  ]
+  ],
 }

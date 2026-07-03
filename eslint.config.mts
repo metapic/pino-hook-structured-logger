@@ -1,30 +1,21 @@
-import eslint from '@eslint/js'
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
+import metapic from '@metapic/eslint-config'
 import { defineConfig } from 'eslint/config'
-import tseslint from 'typescript-eslint'
 
-export default defineConfig(
-  eslint.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
-  ...tseslint.configs.stylisticTypeChecked,
-  eslintPluginPrettierRecommended,
+export default defineConfig([
   {
-    ignores: ['node_modules/', 'dist/', 'dist-*/', 'coverage/', '.*/'],
-  },
-  {
-    languageOptions: {
-      parserOptions: {
-        projectService: true,
-      },
-    },
+    extends: [metapic.configs.recommended],
     rules: {
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      '@typescript-eslint/no-unsafe-call': 'warn',
-      '@typescript-eslint/prefer-nullish-coalescing': 'error',
-      '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
-      'no-console': 'error',
+      'import/no-relative-parent-imports': 'off',
+      'prettier/prettier': [
+        'error',
+        {
+          semi: false,
+          tabWidth: 2,
+          singleQuote: true,
+          printWidth: 80,
+          trailingComma: 'all',
+        },
+      ],
     },
   },
-)
+])

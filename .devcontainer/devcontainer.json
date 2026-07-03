@@ -8,8 +8,6 @@
     "vscode": {
       "extensions": [
         "dbaeumer.vscode-eslint",
-        "EditorConfig.EditorConfig",
-        "esbenp.prettier-vscode",
         "github.vscode-github-actions",
         "github.vscode-pull-request-github",
         "streetsidesoftware.code-spell-checker",

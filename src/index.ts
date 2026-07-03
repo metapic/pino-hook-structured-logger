@@ -1,4 +1,4 @@
-import { LogFn, Logger } from 'pino'
+import { type LogFn, type Logger } from 'pino'
 
 export type StructuredLoggerOptions = {
   /**
