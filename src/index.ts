@@ -1,4 +1,4 @@
-import { type LogFn, type Logger } from 'pino'
+import { type LogFn } from 'pino'
 
 export type StructuredLoggerOptions = {
   /**
@@ -94,7 +94,13 @@ export type StructuredLoggerOptions = {
  *   - `n.emo` -> `logger.log(err, 'message', { obj }, arg1, arg2, arg3, ...)`
  */
 export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
-  logMethod(this: Logger, args: Parameters<LogFn>, method: LogFn) {
+  logMethod(
+    this: {
+      bindings: () => Record<string, unknown>
+    },
+    args: Parameters<LogFn>,
+    method: LogFn,
+  ) {
     const {
       messageTemplateKey = 'msg_tpl',
       dataKey = 'data',
@@ -283,7 +289,9 @@ const wrapStructuredData = (
   }
 }
 
-const getErrorKey = (logger: Logger): string => {
+const getErrorKey = (logger: {
+  bindings: () => Record<string, unknown>
+}): string => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   const cachedErrorKey: string | undefined = (logger as any).__cachedErrorKey
   if (cachedErrorKey) {
@@ -301,7 +309,12 @@ const getErrorKey = (logger: Logger): string => {
   return errorKey
 }
 
-const getPinoConfigValue = <T>(logger: Logger, key: string) => {
+const getPinoConfigValue = <T>(
+  logger: {
+    bindings: () => Record<string, unknown>
+  },
+  key: string,
+) => {
   const errorKeySymbol = Object.getOwnPropertySymbols(logger).find(
     (s) => s.description === key,
   )
