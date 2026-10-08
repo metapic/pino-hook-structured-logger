@@ -211,6 +211,8 @@ describe('structured logger', () => {
         user_id: 12345,
         location: 'Salzburg',
       })
+      expect(capturedLogs[0]).not.toHaveProperty('user_id')
+      expect(capturedLogs[0]).not.toHaveProperty('location')
       expect(capturedLogs[0].args).toEqual(['arg1', { arg_num: 2 }])
     })
   })
@@ -282,6 +284,10 @@ describe('structured logger', () => {
     expect(capturedLogs[0].data).toBeUndefined()
     expect(capturedLogs[0].ctx).toBe('test123')
     expect(capturedLogs[0].bar).toBe(12345)
+
+    const line = vi.mocked(mockStream).write.mock.calls[0][0]
+
+    expect(line.match(/"ctx":/g)).toHaveLength(1)
   })
 
   describe('error handling', () => {
