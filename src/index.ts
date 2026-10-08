@@ -93,51 +93,81 @@ export type StructuredLoggerOptions = {
  *   - `n.em`  -> `logger.log(err, 'message', arg1, arg2, arg3, ...)`
  *   - `n.emo` -> `logger.log(err, 'message', { obj }, arg1, arg2, arg3, ...)`
  */
-export const structuredLogger = (opts: StructuredLoggerOptions = {}) => ({
-  logMethod(
-    this: {
-      bindings: () => Record<string, unknown>
+export const structuredLogger = (opts: StructuredLoggerOptions = {}) => {
+  let bindingKeys: string[] | undefined
+
+  return {
+    streamWrite(line: string) {
+      if (!bindingKeys) {
+        return line
+      }
+
+      const payload = JSON.parse(line) as Record<string, unknown>
+      for (const key of bindingKeys) {
+        delete payload[key]
+      }
+      return `${JSON.stringify(payload)}\n`
     },
-    args: Parameters<LogFn>,
-    method: LogFn,
-  ) {
-    const {
-      messageTemplateKey = 'msg_tpl',
-      dataKey = 'data',
-      argsKey = 'args',
-      unwrapErrors = true,
-      unwrapKeys = [],
-    } = opts
+    logMethod(
+      this: {
+        bindings: () => Record<string, unknown>
+      },
+      args: Parameters<LogFn>,
+      method: LogFn,
+    ) {
+      const {
+        messageTemplateKey = 'msg_tpl',
+        dataKey = 'data',
+        argsKey = 'args',
+        unwrapErrors = true,
+        unwrapKeys = [],
+      } = opts
 
-    if (!args || args.length < 1) {
-      // We need at least one argument to process the log message.
-      return
-    }
+      if (!args || args.length < 1) {
+        // We need at least one argument to process the log message.
+        return
+      }
 
-    const { messageTemplate, structured, error } = extractStructuredData(args)
-    const structuredWithBindings = { ...this.bindings(), ...structured }
-    const formattedMessage = reformatMessageWithRemainingArgs(
-      formatMessage(messageTemplate, structuredWithBindings),
-      structuredWithBindings,
-      args,
-    )
+      const { messageTemplate, structured, error } = extractStructuredData(args)
+      const bindings = this.bindings()
+      const structuredWithBindings = { ...bindings, ...structured }
+      const formattedMessage = reformatMessageWithRemainingArgs(
+        formatMessage(messageTemplate, structuredWithBindings),
+        structuredWithBindings,
+        args,
+      )
 
-    const obj: Record<string, unknown> = {
-      [messageTemplateKey]: messageTemplate,
-      ...wrapError(structuredWithBindings, error, {
-        errorKey: getErrorKey(this),
-        unwrapErrors,
-      }),
-      ...wrapStructuredData(structuredWithBindings, {
-        dataKey,
-        unwrapKeys,
-      }),
-      ...(args.length > 0 ? { [argsKey]: args } : {}),
-    }
+      const obj: Record<string, unknown> = {
+        [messageTemplateKey]: messageTemplate,
+        ...wrapError(structuredWithBindings, error, {
+          errorKey: getErrorKey(this),
+          unwrapErrors,
+        }),
+        ...wrapStructuredData(structuredWithBindings, {
+          dataKey,
+          unwrapKeys,
+        }),
+        ...(args.length > 0 ? { [argsKey]: args } : {}),
+      }
 
-    method.apply(this, [obj, formattedMessage, ...args])
-  },
-})
+      const previousBindingKeys = bindingKeys
+      const keys = Object.keys(bindings)
+      bindingKeys =
+        keys.length > 0
+          ? keys.filter(
+              (key) =>
+                !Object.prototype.hasOwnProperty.call(obj, key) &&
+                !['level', 'time', 'msg', 'pid', 'hostname'].includes(key),
+            )
+          : undefined
+      try {
+        method.apply(this, [obj, formattedMessage, ...args])
+      } finally {
+        bindingKeys = previousBindingKeys
+      }
+    },
+  }
+}
 
 const formatMessage = (
   message: string,

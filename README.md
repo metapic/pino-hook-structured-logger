@@ -1,6 +1,6 @@
 # pino-hook-structured-logger
 
-Adds support for [structured logs](#structured-logging) to [Pino](https://github.com/pinojs/pino) via a [`logMethod` hook](https://getpino.io/#/docs/api?id=logmethod).
+Adds support for [structured logs](#structured-logging) to [Pino](https://github.com/pinojs/pino) via its `logMethod` and `streamWrite` hooks. Requires Pino 9.11 or later in the 9.x series, or Pino 10.x.
 
 ## Structured Logging
 
@@ -23,6 +23,7 @@ logger.info('User {user_id} logged in from {location}', {
 })
 
 // existing bindings (child logger) are respected.
+// bindings appear only in data, unless explicitly listed in unwrapKeys.
 // the dedicated structured data object takes precedence over the bindings,
 // if both are present and there are any conflicting keys.
 const loggerWithBindings = logger.child({ user_id: 12345 })
