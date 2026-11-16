@@ -70,7 +70,9 @@ All examples produce this output:
 
 #### Object or Error Without Message
 
-When only an object or error is passed without a message string, the structured logger preserves all data. If an error is present, its message is used as the log message.
+When only an object or error is passed without a message string, the structured logger preserves all data. If an error is present, its message is used as the log message and its type as the message template, keeping grouping stable across different exception messages. Missing, empty, and whitespace-only messages use this fallback. If the exception message is also blank, the log message falls back to its type.
+
+Fallback exception text is logged literally, including `{placeholders}` and `%s`. Explicit message templates keep their normal formatting behavior. Custom Pino error/message keys and the `messageTemplateKey` option are respected. Error-like objects use their `type` or `name`, defaulting to `Error`.
 
 ```js
 // error only — uses error.message as the log message
@@ -88,7 +90,7 @@ logger.info({ user_id: 123, action: 'login' })
 {
   "level": 50,
   "msg": "Internal Server Error",
-  "msg_tpl": "Internal Server Error",
+  "msg_tpl": "Error",
   "err": {
     "message": "Internal Server Error",
     "type": "Error",

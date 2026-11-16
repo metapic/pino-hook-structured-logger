@@ -131,16 +131,22 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => {
       const { messageTemplate, structured, error } = extractStructuredData(args)
       const bindings = this.bindings()
       const structuredWithBindings = { ...bindings, ...structured }
-      const formattedMessage = reformatMessageWithRemainingArgs(
-        formatMessage(messageTemplate, structuredWithBindings),
-        structuredWithBindings,
-        args,
-      )
+      const errorKey = getErrorKey(this)
+      const fallback = messageTemplate.trim()
+        ? undefined
+        : errorMessageFallback(error ?? structuredWithBindings[errorKey])
+      const formattedMessage = fallback
+        ? fallback.message
+        : reformatMessageWithRemainingArgs(
+            formatMessage(messageTemplate, structuredWithBindings),
+            structuredWithBindings,
+            args,
+          )
 
       const obj: Record<string, unknown> = {
-        [messageTemplateKey]: messageTemplate,
+        [messageTemplateKey]: fallback?.type ?? messageTemplate,
         ...wrapError(structuredWithBindings, error, {
-          errorKey: getErrorKey(this),
+          errorKey,
           unwrapErrors,
         }),
         ...wrapStructuredData(structuredWithBindings, {
@@ -161,13 +167,37 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => {
             )
           : undefined
       try {
-        method.apply(this, [obj, formattedMessage, ...args])
+        method.apply(this, [obj, formattedMessage, ...(fallback ? [] : args)])
       } finally {
         bindingKeys = previousBindingKeys
       }
     },
   }
 }
+
+const errorMessageFallback = (
+  error: unknown,
+): { message: string; type: string } | undefined => {
+  if (typeof error !== 'object' || error === null) {
+    return undefined
+  }
+
+  const details = error as Record<string, unknown>
+  const constructor = details.constructor
+  const type =
+    nonEmptyString(
+      error instanceof Error && typeof constructor === 'function'
+        ? constructor.name
+        : details.type,
+    ) ??
+    nonEmptyString(details.name) ??
+    'Error'
+
+  return { message: nonEmptyString(details.message) ?? type, type }
+}
+
+const nonEmptyString = (value: unknown): string | undefined =>
+  typeof value === 'string' && value.trim() ? value : undefined
 
 const formatMessage = (
   message: string,
@@ -217,7 +247,7 @@ const extractStructuredData = (
   if (typeof args[0] === 'object' && args[0] !== null) {
     const obj = args.shift() as Error | Record<string, unknown>
     if (obj instanceof Error) {
-      return { messageTemplate: 'Error', structured: {}, error: obj }
+      return { messageTemplate: '', structured: {}, error: obj }
     }
     const structured = obj
     return { messageTemplate: '', structured }
@@ -322,9 +352,8 @@ const wrapStructuredData = (
 const getErrorKey = (logger: {
   bindings: () => Record<string, unknown>
 }): string => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  const cachedErrorKey: string | undefined = (logger as any).__cachedErrorKey
-  if (cachedErrorKey) {
+  const cachedErrorKey: unknown = Reflect.get(logger, '__cachedErrorKey')
+  if (typeof cachedErrorKey === 'string') {
     return cachedErrorKey
   }
 
@@ -344,15 +373,17 @@ const getPinoConfigValue = <T>(
     bindings: () => Record<string, unknown>
   },
   key: string,
-) => {
-  const errorKeySymbol = Object.getOwnPropertySymbols(logger).find(
-    (s) => s.description === key,
-  )
-
-  if (!errorKeySymbol) {
-    return undefined
+): T | undefined => {
+  let current: object | null = logger
+  while (current !== null) {
+    const symbol = Object.getOwnPropertySymbols(current).find(
+      (s) => s.description === key,
+    )
+    if (symbol) {
+      return Reflect.get(logger, symbol) as T
+    }
+    current = Object.getPrototypeOf(current) as object | null
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  return (logger as any)[errorKeySymbol] as T
+  return undefined
 }

@@ -433,12 +433,12 @@ describe('structured logger', () => {
   })
 
   describe('object without message', () => {
-    it('uses placeholder message when only an Error is passed', () => {
+    it('uses the exception message when only an Error is passed', () => {
       const error = new Error('Something went wrong')
       logger.error(error)
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('Error')
+      expect(capturedLogs[0].msg).toBe('Something went wrong')
       expect(capturedLogs[0].msg_tpl).toBe('Error')
       expect(capturedLogs[0].err).toEqual({
         message: 'Something went wrong',
@@ -448,13 +448,13 @@ describe('structured logger', () => {
       expect(capturedLogs[0].data).toBeUndefined()
     })
 
-    it('does not use err.message as log message when object with error is passed', () => {
+    it('uses err.message when an object with an error is passed', () => {
       const error = new Error('Internal server error')
       logger.error({ err: error })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
-      expect(capturedLogs[0].msg_tpl).toBe('')
+      expect(capturedLogs[0].msg).toBe('Internal server error')
+      expect(capturedLogs[0].msg_tpl).toBe('Error')
       expect(capturedLogs[0].err).toEqual({
         message: 'Internal server error',
         type: 'Error',
@@ -468,7 +468,7 @@ describe('structured logger', () => {
       logger.error({ err: error, ctx: 'ExceptionFilter', status_code: 500 })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg).toBe('Unhandled exception')
       expect(capturedLogs[0].err).toEqual({
         message: 'Unhandled exception',
         type: 'Error',
@@ -506,7 +506,7 @@ describe('structured logger', () => {
       customLogger.error({ pinoError: error, ctx: 'Test' })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg).toBe('Custom key error')
       expect(capturedLogs[0].pinoError).toEqual({
         message: 'Custom key error',
         type: 'Error',
@@ -541,7 +541,7 @@ describe('structured logger', () => {
       logger.error({ err: exception, ctx: 'ExceptionsHandler' })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg).toBe('Internal Server Error')
       expect(capturedLogs[0].err).toEqual(
         expect.objectContaining({
           message: 'Internal Server Error',
@@ -583,7 +583,9 @@ describe('structured logger', () => {
       logger.error({ err: exception, ctx: 'DatabaseModule' })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg).toBe(
+        '{"statusCode":503,"message":"Database connection failed","error":"Service Unavailable"}',
+      )
       expect(capturedLogs[0].err).toEqual(
         expect.objectContaining({
           message:
@@ -598,13 +600,152 @@ describe('structured logger', () => {
       logger.child({ request_id: 'abc-123' }).error({ err: new Error('fail') })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg).toBe('fail')
       expect(capturedLogs[0].err).toEqual({
         message: 'fail',
         type: 'Error',
         stack: expect.any(String) as unknown,
       })
       expect(capturedLogs[0].data).toEqual({ request_id: 'abc-123' })
+    })
+
+    class ClientClosedError extends Error {}
+
+    it.each([undefined, '', '   '])(
+      'fills a missing or blank message argument (%s)',
+      (message) => {
+        const error = new ClientClosedError('The client is closed')
+        logger
+          .child({ request_id: 'abc-123' })
+          .error({ err: error, ctx: 'ExceptionsHandler' }, message)
+
+        expect(capturedLogs[0]).toMatchObject({
+          msg: 'The client is closed',
+          msg_tpl: 'ClientClosedError',
+          err: {
+            type: 'ClientClosedError',
+            message: 'The client is closed',
+            stack: error.stack,
+          },
+          data: { request_id: 'abc-123', ctx: 'ExceptionsHandler' },
+        })
+      },
+    )
+
+    it('uses a stable exception type for direct Error templates', () => {
+      logger.error(new ClientClosedError('Connection one is closed'))
+      logger.error(new ClientClosedError('Connection two is closed'))
+
+      expect(capturedLogs.map(({ msg_tpl }) => msg_tpl)).toEqual([
+        'ClientClosedError',
+        'ClientClosedError',
+      ])
+      expect(capturedLogs.map(({ msg }) => msg)).toEqual([
+        'Connection one is closed',
+        'Connection two is closed',
+      ])
+    })
+
+    it('uses the exception type when its message is blank', () => {
+      logger.error({ err: new ClientClosedError('   ') })
+
+      expect(capturedLogs[0]).toMatchObject({
+        msg: 'ClientClosedError',
+        msg_tpl: 'ClientClosedError',
+      })
+    })
+
+    it('does not interpolate exception text or consume unmatched arguments', () => {
+      logger
+        .child({ request_id: 'abc-123' })
+        .error(
+          { err: new Error('Failed {request_id}: %s') },
+          undefined,
+          'extra',
+        )
+
+      expect(capturedLogs[0]).toMatchObject({
+        msg: 'Failed {request_id}: %s',
+        msg_tpl: 'Error',
+        args: [null, 'extra'],
+        data: { request_id: 'abc-123' },
+      })
+    })
+
+    it('preserves explicit templates even when they render blank', () => {
+      logger.error({ err: new Error('boom'), subject: '' }, '{subject}')
+
+      expect(capturedLogs[0]).toMatchObject({
+        msg: '',
+        msg_tpl: '{subject}',
+      })
+    })
+
+    it('respects custom message, template, and error keys for fallbacks', () => {
+      const customLogger = pino(
+        {
+          messageKey: 'message',
+          errorKey: 'exception',
+          hooks: structuredLogger({ messageTemplateKey: 'template' }),
+        },
+        mockStream,
+      )
+      customLogger.error({ exception: new ClientClosedError('Closed') })
+
+      expect(capturedLogs[0]).toMatchObject({
+        message: 'Closed',
+        template: 'ClientClosedError',
+        exception: { type: 'ClientClosedError', message: 'Closed' },
+      })
+      expect(capturedLogs[0]).not.toHaveProperty('msg_tpl')
+    })
+
+    it('finds a custom error key when the first log comes from a child', () => {
+      const customLogger = pino(
+        {
+          errorKey: 'exception',
+          hooks: structuredLogger(),
+        },
+        mockStream,
+      )
+      const error = new ClientClosedError('Closed')
+      customLogger.child({ request_id: 'abc-123' }).error({ exception: error })
+
+      expect(capturedLogs[0]).toMatchObject({
+        msg: 'Closed',
+        msg_tpl: 'ClientClosedError',
+        exception: {
+          type: 'ClientClosedError',
+          message: 'Closed',
+          stack: error.stack,
+        },
+        data: { request_id: 'abc-123' },
+      })
+    })
+
+    it('uses the error name when its constructor has been overridden', () => {
+      const error = new Error('Closed')
+      Object.defineProperty(error, 'constructor', { value: null })
+      logger.error(error)
+
+      expect(capturedLogs[0]).toMatchObject({
+        msg: 'Closed',
+        msg_tpl: 'Error',
+        err: { type: 'Error', message: 'Closed' },
+      })
+    })
+
+    it.each([
+      { type: 'ClientClosedError', message: 'Closed' },
+      { name: 'ClientClosedError', message: 'Closed' },
+    ])('uses type or name from error-like objects (%j)', (err) => {
+      logger.error({ err })
+
+      expect(capturedLogs[0]).toMatchObject({
+        msg: 'Closed',
+        msg_tpl: 'ClientClosedError',
+        data: { err },
+      })
     })
   })
 
