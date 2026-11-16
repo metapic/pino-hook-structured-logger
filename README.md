@@ -70,13 +70,15 @@ All examples produce this output:
 
 #### Object or Error Without Message
 
-When only an object or error is passed without a message string, the structured logger preserves all data. If an error is present, its message is used as the log message.
+When an error is passed without a nonblank message string, both the log message and message template use the generic placeholder `Error`. This avoids copying potentially sensitive exception text into message fields and keeps alert grouping stable. Error details remain in the structured payload. Plain objects without an error keep an empty message.
+
+Explicit message templates keep their normal formatting behavior, including templates that render to an empty string. Custom Pino error/message keys and the `messageTemplateKey` option are respected.
 
 ```js
-// error only — uses error.message as the log message
+// error only — uses the generic Error placeholder
 logger.error(new Error('Something went wrong'))
 
-// object with error — uses err.message as the log message
+// object with error — uses the generic Error placeholder
 logger.error({ err: new Error('Internal Server Error'), ctx: 'ExceptionsHandler' })
 
 // plain object — empty message, data preserved
@@ -87,8 +89,8 @@ logger.info({ user_id: 123, action: 'login' })
 // logger.error({ err: new Error('Internal Server Error'), ctx: 'ExceptionsHandler' })
 {
   "level": 50,
-  "msg": "Internal Server Error",
-  "msg_tpl": "Internal Server Error",
+  "msg": "Error",
+  "msg_tpl": "Error",
   "err": {
     "message": "Internal Server Error",
     "type": "Error",

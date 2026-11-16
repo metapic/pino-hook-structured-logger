@@ -453,8 +453,8 @@ describe('structured logger', () => {
       logger.error({ err: error })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
-      expect(capturedLogs[0].msg_tpl).toBe('')
+      expect(capturedLogs[0].msg).toBe('Error')
+      expect(capturedLogs[0].msg_tpl).toBe('Error')
       expect(capturedLogs[0].err).toEqual({
         message: 'Internal server error',
         type: 'Error',
@@ -468,7 +468,7 @@ describe('structured logger', () => {
       logger.error({ err: error, ctx: 'ExceptionFilter', status_code: 500 })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg).toBe('Error')
       expect(capturedLogs[0].err).toEqual({
         message: 'Unhandled exception',
         type: 'Error',
@@ -506,7 +506,7 @@ describe('structured logger', () => {
       customLogger.error({ pinoError: error, ctx: 'Test' })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg).toBe('Error')
       expect(capturedLogs[0].pinoError).toEqual({
         message: 'Custom key error',
         type: 'Error',
@@ -541,7 +541,7 @@ describe('structured logger', () => {
       logger.error({ err: exception, ctx: 'ExceptionsHandler' })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg).toBe('Error')
       expect(capturedLogs[0].err).toEqual(
         expect.objectContaining({
           message: 'Internal Server Error',
@@ -583,7 +583,7 @@ describe('structured logger', () => {
       logger.error({ err: exception, ctx: 'DatabaseModule' })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg).toBe('Error')
       expect(capturedLogs[0].err).toEqual(
         expect.objectContaining({
           message:
@@ -598,13 +598,89 @@ describe('structured logger', () => {
       logger.child({ request_id: 'abc-123' }).error({ err: new Error('fail') })
 
       expect(capturedLogs).toHaveLength(1)
-      expect(capturedLogs[0].msg).toBe('')
+      expect(capturedLogs[0].msg).toBe('Error')
       expect(capturedLogs[0].err).toEqual({
         message: 'fail',
         type: 'Error',
         stack: expect.any(String) as unknown,
       })
       expect(capturedLogs[0].data).toEqual({ request_id: 'abc-123' })
+    })
+  })
+
+  describe('privacy-preserving error placeholders', () => {
+    it.each([undefined, '', '   '])(
+      'uses a generic placeholder for missing or blank messages (%s)',
+      (message) => {
+        const error = new Error('Request failed for person@example.invalid')
+        logger
+          .child({ request_id: 'abc-123' })
+          .error({ err: error, ctx: 'ExceptionsHandler' }, message)
+
+        expect(capturedLogs[0]).toMatchObject({
+          msg: 'Error',
+          msg_tpl: 'Error',
+          err: { message: error.message, stack: error.stack },
+          data: { request_id: 'abc-123', ctx: 'ExceptionsHandler' },
+        })
+      },
+    )
+
+    it('does not use varying exception text as message or grouping template', () => {
+      logger.error({
+        err: new Error('Request failed for first@example.invalid'),
+      })
+      logger.error({
+        err: new Error('Request failed for second@example.invalid'),
+      })
+
+      expect(
+        capturedLogs.map(({ msg, msg_tpl }) => ({ msg, msg_tpl })),
+      ).toEqual([
+        { msg: 'Error', msg_tpl: 'Error' },
+        { msg: 'Error', msg_tpl: 'Error' },
+      ])
+    })
+
+    it('respects custom keys when the first error comes from a child logger', () => {
+      const customLogger = pino(
+        {
+          messageKey: 'message',
+          errorKey: 'exception',
+          hooks: structuredLogger({ messageTemplateKey: 'template' }),
+        },
+        mockStream,
+      )
+      const error = new Error('Request failed for person@example.invalid')
+      customLogger.child({ request_id: 'abc-123' }).error({ exception: error })
+
+      expect(capturedLogs[0]).toMatchObject({
+        message: 'Error',
+        template: 'Error',
+        exception: { message: error.message, stack: error.stack },
+        data: { request_id: 'abc-123' },
+      })
+      expect(capturedLogs[0]).not.toHaveProperty('msg_tpl')
+    })
+
+    it('preserves explicit templates that render blank', () => {
+      logger.error(
+        { err: new Error('Private details'), subject: '' },
+        '{subject}',
+      )
+
+      expect(capturedLogs[0]).toMatchObject({ msg: '', msg_tpl: '{subject}' })
+    })
+
+    it('uses a generic placeholder for error-like objects too', () => {
+      const err = { type: 'Failure', message: 'person@example.invalid' }
+      logger.error({ err })
+
+      expect(capturedLogs[0]).toMatchObject({
+        msg: 'Error',
+        msg_tpl: 'Error',
+        data: { err },
+      })
     })
   })
 

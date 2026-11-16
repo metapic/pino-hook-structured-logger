@@ -131,16 +131,24 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => {
       const { messageTemplate, structured, error } = extractStructuredData(args)
       const bindings = this.bindings()
       const structuredWithBindings = { ...bindings, ...structured }
+      const errorKey = getErrorKey(this)
+      const errorValue = error ?? structuredWithBindings[errorKey]
+      const template =
+        !messageTemplate.trim() &&
+        typeof errorValue === 'object' &&
+        errorValue !== null
+          ? 'Error'
+          : messageTemplate
       const formattedMessage = reformatMessageWithRemainingArgs(
-        formatMessage(messageTemplate, structuredWithBindings),
+        formatMessage(template, structuredWithBindings),
         structuredWithBindings,
         args,
       )
 
       const obj: Record<string, unknown> = {
-        [messageTemplateKey]: messageTemplate,
+        [messageTemplateKey]: template,
         ...wrapError(structuredWithBindings, error, {
-          errorKey: getErrorKey(this),
+          errorKey,
           unwrapErrors,
         }),
         ...wrapStructuredData(structuredWithBindings, {
@@ -322,9 +330,8 @@ const wrapStructuredData = (
 const getErrorKey = (logger: {
   bindings: () => Record<string, unknown>
 }): string => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  const cachedErrorKey: string | undefined = (logger as any).__cachedErrorKey
-  if (cachedErrorKey) {
+  const cachedErrorKey: unknown = Reflect.get(logger, '__cachedErrorKey')
+  if (typeof cachedErrorKey === 'string') {
     return cachedErrorKey
   }
 
@@ -344,15 +351,17 @@ const getPinoConfigValue = <T>(
     bindings: () => Record<string, unknown>
   },
   key: string,
-) => {
-  const errorKeySymbol = Object.getOwnPropertySymbols(logger).find(
-    (s) => s.description === key,
-  )
-
-  if (!errorKeySymbol) {
-    return undefined
+): T | undefined => {
+  let current: object | null = logger
+  while (current !== null) {
+    const symbol = Object.getOwnPropertySymbols(current).find(
+      (s) => s.description === key,
+    )
+    if (symbol) {
+      return Reflect.get(logger, symbol) as T
+    }
+    current = Object.getPrototypeOf(current) as object | null
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  return (logger as any)[errorKeySymbol] as T
+  return undefined
 }
