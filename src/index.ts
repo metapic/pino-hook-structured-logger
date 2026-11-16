@@ -132,19 +132,21 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => {
       const bindings = this.bindings()
       const structuredWithBindings = { ...bindings, ...structured }
       const errorKey = getErrorKey(this)
-      const fallback = messageTemplate.trim()
-        ? undefined
-        : errorMessageFallback(error ?? structuredWithBindings[errorKey])
-      const formattedMessage = fallback
-        ? fallback.message
-        : reformatMessageWithRemainingArgs(
-            formatMessage(messageTemplate, structuredWithBindings),
-            structuredWithBindings,
-            args,
-          )
+      const errorValue = error ?? structuredWithBindings[errorKey]
+      const template =
+        !messageTemplate.trim() &&
+        typeof errorValue === 'object' &&
+        errorValue !== null
+          ? 'Error'
+          : messageTemplate
+      const formattedMessage = reformatMessageWithRemainingArgs(
+        formatMessage(template, structuredWithBindings),
+        structuredWithBindings,
+        args,
+      )
 
       const obj: Record<string, unknown> = {
-        [messageTemplateKey]: fallback?.type ?? messageTemplate,
+        [messageTemplateKey]: template,
         ...wrapError(structuredWithBindings, error, {
           errorKey,
           unwrapErrors,
@@ -167,37 +169,13 @@ export const structuredLogger = (opts: StructuredLoggerOptions = {}) => {
             )
           : undefined
       try {
-        method.apply(this, [obj, formattedMessage, ...(fallback ? [] : args)])
+        method.apply(this, [obj, formattedMessage, ...args])
       } finally {
         bindingKeys = previousBindingKeys
       }
     },
   }
 }
-
-const errorMessageFallback = (
-  error: unknown,
-): { message: string; type: string } | undefined => {
-  if (typeof error !== 'object' || error === null) {
-    return undefined
-  }
-
-  const details = error as Record<string, unknown>
-  const constructor = details.constructor
-  const type =
-    nonEmptyString(
-      error instanceof Error && typeof constructor === 'function'
-        ? constructor.name
-        : details.type,
-    ) ??
-    nonEmptyString(details.name) ??
-    'Error'
-
-  return { message: nonEmptyString(details.message) ?? type, type }
-}
-
-const nonEmptyString = (value: unknown): string | undefined =>
-  typeof value === 'string' && value.trim() ? value : undefined
 
 const formatMessage = (
   message: string,
@@ -247,7 +225,7 @@ const extractStructuredData = (
   if (typeof args[0] === 'object' && args[0] !== null) {
     const obj = args.shift() as Error | Record<string, unknown>
     if (obj instanceof Error) {
-      return { messageTemplate: '', structured: {}, error: obj }
+      return { messageTemplate: 'Error', structured: {}, error: obj }
     }
     const structured = obj
     return { messageTemplate: '', structured }
